@@ -444,3 +444,9 @@ p code, li code, td code { color: var(--text); background: var(--bg-3); border: 
   .trio article { padding: 24px 16px; }
 }
 @media (max-width: 620px) { .prose td, .prose th { min-width: 150px; } }
+
+/* Brand logos in app tiles */
+.app .n i svg { width: 12px; height: 12px; display: block; }
+.apps.big .app .n i { width: 30px; height: 30px; }
+.apps.big .app .n i svg { width: 16px; height: 16px; }
+.apps.big .app .n { gap: 12px; font-size: 14px; }

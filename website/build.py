@@ -7,6 +7,7 @@ an "On this page" list built from their <h2 id> headings, and prev/next links.
     python3 build.py          # writes public/**/index.html
 """
 import html
+import json
 import re
 from pathlib import Path
 
@@ -170,7 +171,20 @@ def _page(title, desc, active, body, url):
 """
 
 
+ICONS = json.loads((SRC / "icons.json").read_text())  # Simple Icons paths + brand colours
+
+
+def icon(slug: str) -> str:
+    """Inline brand logo. Near-black brand colours are drawn light so they show on the dark site."""
+    i = ICONS[slug]
+    r, g, b = (int(i["hex"][k:k + 2], 16) for k in (0, 2, 4))
+    color = "#EDEDED" if max(r, g, b) < 90 else f"#{i['hex']}"
+    return (f'<svg viewBox="0 0 24 24" role="img" aria-label="{i["title"]}" fill="{color}">'
+            f'<path d="{i["path"]}"/></svg>')
+
+
 def fill(text: str) -> str:
+    text = re.sub(r"\{\{icon:([a-z0-9]+)\}\}", lambda m: icon(m.group(1)), text)
     return text.replace("{{ZIP}}", ZIP).replace("{{REPO}}", REPO).replace("{{VERSION}}", VERSION)
 
 
