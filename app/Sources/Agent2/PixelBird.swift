@@ -140,45 +140,42 @@ enum DMGBackground {
         rep.size = size
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        // Light theme on purpose: Finder always draws icon names in dark text,
+        // so they must sit on a light background to be readable at any icon size.
         let green = NSColor(srgbRed: 0x54 / 255, green: 0x8A / 255, blue: 0x47 / 255, alpha: 1)
-        let greenHi = NSColor(srgbRed: 0x7C / 255, green: 0xBA / 255, blue: 0x6B / 255, alpha: 1)
-        let line = NSColor(white: 1, alpha: 0.06)
-        let muted = NSColor(white: 0.56, alpha: 1)
+        let ink = NSColor(srgbRed: 0x0B / 255, green: 0x0B / 255, blue: 0x0B / 255, alpha: 1)
+        let muted = NSColor(white: 0.42, alpha: 1)
 
-        // Near-black with a faint 32pt grid, like the website.
-        NSColor(srgbRed: 0x0B / 255, green: 0x0B / 255, blue: 0x0B / 255, alpha: 1).setFill()
+        NSColor(srgbRed: 0xF3 / 255, green: 0xF3 / 255, blue: 0xF0 / 255, alpha: 1).setFill()
         NSRect(origin: .zero, size: size).fill()
-        line.setFill()
+        NSColor(white: 0, alpha: 0.05).setFill()
         stride(from: 0.0, through: size.width, by: 32).forEach { NSRect(x: $0, y: 0, width: 1, height: size.height).fill() }
         stride(from: 0.0, through: size.height, by: 32).forEach { NSRect(x: 0, y: $0, width: size.width, height: 1).fill() }
 
         // Header: bird + wordmark, and a mono label.
         NSGraphicsContext.current?.shouldAntialias = false
-        PixelBird.draw(in: NSRect(x: 32, y: size.height - 58, width: 22, height: 26), color: greenHi)
+        PixelBird.draw(in: NSRect(x: 32, y: size.height - 58, width: 22, height: 26), color: green)
         NSGraphicsContext.current?.shouldAntialias = true
         ("Agent2" as NSString).draw(at: NSPoint(x: 62, y: size.height - 55),
-                                    withAttributes: [.font: NSFont.systemFont(ofSize: 20, weight: .semibold), .foregroundColor: NSColor.white])
+                                    withAttributes: [.font: NSFont.systemFont(ofSize: 20, weight: .semibold), .foregroundColor: ink])
         let mono = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .medium)
         let tag = "// INSTALL"
-        let tagAttrs: [NSAttributedString.Key: Any] = [.font: mono, .foregroundColor: greenHi, .kern: 1.0]
+        let tagAttrs: [NSAttributedString.Key: Any] = [.font: mono, .foregroundColor: green, .kern: 1.0]
         let tagW = (tag as NSString).size(withAttributes: tagAttrs).width
         (tag as NSString).draw(at: NSPoint(x: size.width - 32 - tagW, y: size.height - 50), withAttributes: tagAttrs)
 
-        // Square plates behind the two icons, each with a light strip where Finder
-        // writes the icon's name (Finder always draws those names in dark text).
+        // White square plates behind the icons, tall enough to hold the names at any icon size.
         for c in [appIcon, appsIcon] {
-            let top = size.height - (c.y - 74), bottom = size.height - (c.y + 84)
-            let r = NSRect(x: c.x - 74, y: bottom, width: 148, height: top - bottom)
-            NSColor(white: 1, alpha: 0.03).setFill(); r.fill()
-            NSColor(white: 1, alpha: 0.12).setStroke()
+            let top = size.height - (c.y - 78), bottom = size.height - (c.y + 104)
+            let r = NSRect(x: c.x - 78, y: bottom, width: 156, height: top - bottom)
+            NSColor.white.setFill(); r.fill()
+            NSColor(white: 0, alpha: 0.14).setStroke()
             let p = NSBezierPath(rect: r.insetBy(dx: 0.5, dy: 0.5)); p.lineWidth = 1; p.stroke()
-            let strip = NSRect(x: r.minX, y: size.height - (c.y + 84), width: r.width, height: 26)
-            NSColor(srgbRed: 0xED / 255, green: 0xED / 255, blue: 0xED / 255, alpha: 1).setFill(); strip.fill()
         }
 
-        // The arrow: dashed shaft, solid square-ended head, in Agent2 green.
+        // The arrow: dashed shaft, solid head, in Agent2 green.
         let y = size.height - appIcon.y
-        let x0 = appIcon.x + 92, x1 = appsIcon.x - 96
+        let x0 = appIcon.x + 94, x1 = appsIcon.x - 98
         let shaft = NSBezierPath()
         shaft.move(to: NSPoint(x: x0, y: y)); shaft.line(to: NSPoint(x: x1 - 6, y: y))
         shaft.lineWidth = 4
@@ -189,18 +186,18 @@ enum DMGBackground {
         head.line(to: NSPoint(x: x1 - 8, y: y + 13))
         head.line(to: NSPoint(x: x1 - 8, y: y - 13))
         head.close()
-        greenHi.setFill(); head.fill()
+        green.setFill(); head.fill()
 
         // Footer instruction.
         let text = "DRAG AGENT2 INTO APPLICATIONS"
-        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
-                                                     .foregroundColor: NSColor.white, .kern: 1.6]
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .semibold),
+                                                     .foregroundColor: ink, .kern: 1.6]
         let tw = (text as NSString).size(withAttributes: attrs).width
-        (text as NSString).draw(at: NSPoint(x: (size.width - tw) / 2, y: 64), withAttributes: attrs)
+        (text as NSString).draw(at: NSPoint(x: (size.width - tw) / 2, y: 50), withAttributes: attrs)
         let sub = "First launch: right-click Agent2 → Open"
         let subAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11.5), .foregroundColor: muted]
         let sw = (sub as NSString).size(withAttributes: subAttrs).width
-        (sub as NSString).draw(at: NSPoint(x: (size.width - sw) / 2, y: 40), withAttributes: subAttrs)
+        (sub as NSString).draw(at: NSPoint(x: (size.width - sw) / 2, y: 28), withAttributes: subAttrs)
 
         NSGraphicsContext.restoreGraphicsState()
         return rep
