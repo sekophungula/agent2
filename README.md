@@ -8,7 +8,7 @@ A macOS menu-bar app that gets Claude Code, Codex, Gemini and your API keys work
 
 <p align="center">
   <a href="https://agent2.shakatec.co.za">Website</a> ·
-  <a href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">Download</a>
+  <a href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2.dmg">Download</a>
 </p>
 
 ---
@@ -28,7 +28,7 @@ Agent2 doesn't do the heavy lifting itself. You pick one agent as the **source**
 
 ## Install
 
-1. Download `Agent2-macOS.zip` from [Releases](https://github.com/sekophungula/agent2/releases/latest) and move `Agent2.app` to Applications.
+1. Download `Agent2.dmg` from [Releases](https://github.com/sekophungula/agent2/releases/latest), open it and drag Agent2 onto Applications.
 2. The build is ad-hoc signed, so the first time, right-click → **Open** → **Open**.
 3. Grant **Accessibility** (for the ⌃⌥ shortcut), **Microphone** and **Speech Recognition** when asked.
 4. Have at least one agent ready:
@@ -42,7 +42,7 @@ Agent2 doesn't do the heavy lifting itself. You pick one agent as the **source**
 Requires macOS 14+ and Xcode 16+ (Swift 5.10+).
 
 ```bash
-./scripts/build-app.sh          # → dist/Agent2.app and dist/Agent2-macOS.zip
+./scripts/build-app.sh          # → dist/Agent2.app, dist/Agent2.dmg and dist/Agent2-macOS.zip
 open dist/Agent2.app
 ```
 

@@ -16,7 +16,7 @@ SRC = ROOT / "src"
 OUT = ROOT / "public"
 
 REPO = "https://github.com/sekophungula/agent2"
-ZIP = f"{REPO}/releases/latest/download/Agent2-macOS.zip"
+DMG = f"{REPO}/releases/latest/download/Agent2.dmg"
 VERSION = "0.1.2"
 
 # (path, source fragment, nav key, title, description)
@@ -127,13 +127,13 @@ EXTERNAL_LINK = re.compile(r'<a\b([^>]*?)\bhref="(https?://[^"]+)"([^>]*)>')
 def external_links(doc: str) -> str:
     """Links that leave agent2.shakatec.co.za open in a new tab.
 
-    Direct file downloads (.zip) are left alone: they start a download
+    Direct file downloads (.dmg, .zip) are left alone: they start a download
     without leaving the page, so a new tab would only flash open and close.
     """
     def fix(m):
         before, href, after = m.groups()
         attrs = before + after
-        if "agent2.shakatec.co.za" in href or href.endswith(".zip") or "target=" in attrs:
+        if "agent2.shakatec.co.za" in href or href.endswith((".dmg", ".zip")) or "target=" in attrs:
             return m.group(0)
         return f'<a{before}href="{href}"{after} target="_blank" rel="noopener noreferrer">'
     return EXTERNAL_LINK.sub(fix, doc)
@@ -186,7 +186,7 @@ def icon(slug: str) -> str:
 
 def fill(text: str) -> str:
     text = re.sub(r"\{\{icon:([a-z0-9]+)\}\}", lambda m: icon(m.group(1)), text)
-    return text.replace("{{ZIP}}", ZIP).replace("{{REPO}}", REPO).replace("{{VERSION}}", VERSION)
+    return text.replace("{{DMG}}", DMG).replace("{{REPO}}", REPO).replace("{{VERSION}}", VERSION)
 
 
 def slugify(s: str) -> str:

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds Agent2.app (universal) into dist/, plus a zip for GitHub Releases.
+# Builds Agent2.app (universal) into dist/, plus a .dmg (and a .zip) for GitHub Releases.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VERSION="${VERSION:-0.1.2}"
@@ -48,4 +48,13 @@ PLIST
 codesign --force --deep --sign "${SIGN_ID:--}" "$APP"
 
 (cd "$DIST" && rm -f Agent2-macOS.zip && ditto -c -k --keepParent Agent2.app Agent2-macOS.zip)
-echo "Built $APP and $DIST/Agent2-macOS.zip"
+
+# Disk image: Agent2.app next to an Applications shortcut, so people drag one onto the other.
+DMG="$DIST/Agent2.dmg"
+STAGE="$DIST/dmg"
+rm -rf "$STAGE" "$DMG" && mkdir -p "$STAGE"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -volname "Agent2" -srcfolder "$STAGE" -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG" >/dev/null
+rm -rf "$STAGE"
+echo "Built $APP, $DMG and $DIST/Agent2-macOS.zip"
