@@ -17,7 +17,7 @@ OUT = ROOT / "public"
 
 REPO = "https://github.com/sekophungula/agent2"
 ZIP = f"{REPO}/releases/latest/download/Agent2-macOS.zip"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 # (path, source fragment, nav key, title, description)
 PAGES = [

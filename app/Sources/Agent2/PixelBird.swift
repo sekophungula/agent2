@@ -78,9 +78,9 @@ enum PixelBird {
         let inset = s * 0.1
         let body = NSRect(x: inset, y: inset, width: s - 2 * inset, height: s - 2 * inset)
         let path = NSBezierPath(roundedRect: body, xRadius: body.width * 0.225, yRadius: body.width * 0.225)
-        NSGradient(starting: NSColor(srgbRed: 0x6A / 255, green: 0xA8 / 255, blue: 0x5B / 255, alpha: 1),
-                   ending: NSColor(srgbRed: 0x3F / 255, green: 0x6E / 255, blue: 0x35 / 255, alpha: 1))!
-            .draw(in: path, angle: -90)
+        // Flat Agent2 green, no gradient.
+        NSColor(srgbRed: 0x54 / 255, green: 0x8A / 255, blue: 0x47 / 255, alpha: 1).setFill()
+        path.fill()
         NSGraphicsContext.current?.shouldAntialias = false
         draw(in: body.insetBy(dx: body.width * 0.17, dy: body.height * 0.15), color: ink)
         NSGraphicsContext.restoreGraphicsState()
