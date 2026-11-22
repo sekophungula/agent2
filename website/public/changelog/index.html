@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Changelog — Agent2</title>
+  <meta name="description" content="New features, improvements and fixes shipped in Agent2." />
+  <meta property="og:title" content="Changelog — Agent2" />
+  <meta property="og:description" content="New features, improvements and fixes shipped in Agent2." />
+  <meta property="og:image" content="https://agent2.shakatec.co.za/assets/og.png" />
+  <meta property="og:url" content="https://agent2.shakatec.co.za/changelog/" />
+  <meta name="theme-color" content="#0b0b0b" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a>
+      <nav class="links">
+        <a href="/docs/">Docs</a>
+        <a href="/integrations/">Integrations</a>
+        <a href="/changelog/" class="on">Changelog</a>
+        <a href="/download/">Download</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-line btn-sm gh" href="https://github.com/sekophungula/agent2"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span data-stars>GitHub</span></a>
+        <a class="btn btn-white btn-sm" href="/download/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11"/></svg>Download</a>
+        <button class="menu-btn" aria-label="Menu" aria-expanded="false" data-menu>☰</button>
+      </div>
+    </div>
+    <nav class="mobile-links" data-mobile>
+      <a href="/docs/">Docs</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a><a href="/download/">Download</a><a href="https://github.com/sekophungula/agent2">GitHub</a>
+    </nav>
+  </header>
+  <main class="frame narrow">
+    <section class="page-head">
+      <span class="label g">// Changelog</span>
+      <h1>Changelog</h1>
+      <p class="lead">New features, improvements and fixes shipped in Agent2. Every release is on <a class="more" href="https://github.com/sekophungula/agent2/releases">GitHub Releases →</a></p>
+    </section>
+
+    <article class="release">
+      <div class="rel-meta"><span class="label">November 22, 2026</span><span class="tag ok">Latest</span></div>
+      <div class="rel-body">
+        <h2>A squared-off redesign</h2>
+        <span class="label">Version 0.1.1</span>
+        <ul>
+          <li>The popover now reads like a console: a <code>~/Agent2 / source:</code> line you can click to switch source, square controls and a <code>&gt;</code> prompt.</li>
+          <li>Agent hand-offs show as <code>==&gt;</code> rows with <b>Delegated</b> and <b>Done</b> tags you can expand.</li>
+          <li>Settings has a new sidebar and bordered panels, and uses square checkboxes instead of switches.</li>
+          <li>Composio apps are now a grid with a Link button on each app.</li>
+          <li>The version tag shows <b>dev</b> instead of “vdev” in development builds.</li>
+        </ul>
+        <a class="btn btn-line btn-sm" href="https://github.com/sekophungula/agent2/releases/tag/v0.1.1">Download v0.1.1</a>
+      </div>
+    </article>
+
+    <article class="release">
+      <div class="rel-meta"><span class="label">November 22, 2026</span></div>
+      <div class="rel-body">
+        <h2>First release</h2>
+        <span class="label">Version 0.1.0</span>
+        <ul>
+          <li>Agent2 lives in the menu bar as a pixel bird. Click it for the chat, or right-click to switch source.</li>
+          <li>Hold <kbd>⌃</kbd> <kbd>⌥</kbd> anywhere to talk. Speech is transcribed on your Mac. A quick tap opens the chat for typing.</li>
+          <li>Finds Claude Code, Codex, Gemini, Cursor Agent and OpenCode, Anthropic and OpenAI API keys, and the Claude and ChatGPT desktop apps.</li>
+          <li>The source agent can delegate work to other agents, which run in parallel. Agent2 allows up to three follow-up rounds.</li>
+          <li>Conversations are saved as Markdown in <code>~/Agent2/History</code>, independent of any agent.</li>
+          <li>Composio: sign in, link apps and add Composio to Claude Code and Codex from Settings → Apps.</li>
+          <li>Three autonomy levels: ask first, edit files in the workspace, or full access.</li>
+        </ul>
+        <a class="btn btn-line btn-sm" href="https://github.com/sekophungula/agent2/releases/tag/v0.1.0">Download v0.1.0</a>
+      </div>
+    </article>
+  </main>
+
+
+  <footer class="footer">
+    <div class="frame">
+      <div class="foot">
+        <div><a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a><p>The middleman for your AI agents. A macOS menu-bar app.</p></div>
+        <div><span class="label">Product</span><a href="/download/">Download</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a></div>
+        <div><span class="label">Docs</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/troubleshooting/">Troubleshooting</a></div>
+        <div><span class="label">Source</span><a href="https://github.com/sekophungula/agent2">GitHub</a><a href="https://github.com/sekophungula/agent2/releases">Releases</a><a href="https://github.com/sekophungula/agent2/blob/main/LICENSE">MIT License</a></div>
+      </div>
+      <div class="legal"><span>© 2026 Shakatec</span><span class="sw">v0.1.1</span></div>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var b = document.querySelector('[data-menu]'), m = document.querySelector('[data-mobile]');
+    if (b && m) b.addEventListener('click', function () { var o = m.classList.toggle('open'); b.setAttribute('aria-expanded', o); });
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var t = btn.closest('.cmd').querySelector('code').innerText;
+        navigator.clipboard.writeText(t).then(function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); });
+      });
+    });
+    document.querySelectorAll('[data-tabs]').forEach(function (root) {
+      var tabs = root.querySelectorAll('[data-tab]'), panes = root.querySelectorAll('[data-pane]');
+      tabs.forEach(function (t) { t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.toggle('on', x === t); x.setAttribute('aria-selected', x === t); });
+        panes.forEach(function (p) { p.hidden = p.dataset.pane !== t.dataset.tab; });
+      }); });
+    });
+    var q = document.querySelector('[data-docsearch]');
+    if (q) q.addEventListener('input', function () {
+      var v = q.value.toLowerCase();
+      document.querySelectorAll('.docs-nav a').forEach(function (a) { a.hidden = v && a.textContent.toLowerCase().indexOf(v) < 0; });
+    });
+    var s = document.querySelector('[data-stars]');
+    if (s) fetch('https://api.github.com/repos/sekophungula/agent2').then(function (r) { return r.json(); })
+      .then(function (d) { if (d.stargazers_count > 0) s.textContent = d.stargazers_count.toLocaleString(); }).catch(function () {});
+  })();
+  </script>
+</body>
+</html>

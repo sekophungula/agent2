@@ -1,0 +1,50 @@
+  <main class="frame">
+    <section class="page-head">
+      <span class="label g">// Download</span>
+      <h1>Get Agent2 for your Mac</h1>
+      <p class="lead">One universal build for Apple Silicon and Intel. Free and open source under the MIT license.</p>
+    </section>
+
+    <section class="rule">
+      <div class="block-head">
+        <div><h2>Desktop</h2><p>The latest stable build, straight from GitHub Releases.</p></div>
+        <a class="btn btn-line btn-sm" href="{{REPO}}/releases">All releases</a>
+      </div>
+      <div class="dl-grid">
+        <a class="dl" href="{{ZIP}}">
+          <span><b>macOS</b><small>Apple Silicon · universal .zip · v{{VERSION}}</small></span><span class="dl-ico">↓</span>
+        </a>
+        <a class="dl" href="{{ZIP}}">
+          <span><b>macOS Intel</b><small>Same universal .zip · v{{VERSION}}</small></span><span class="dl-ico">↓</span>
+        </a>
+        <div class="dl off"><span><b>Windows</b><small>Not available · Agent2 is macOS-only for now</small></span><span class="tag">Soon</span></div>
+        <div class="dl off"><span><b>Linux</b><small>Not available</small></span><span class="tag">—</span></div>
+      </div>
+    </section>
+
+    <section class="rule">
+      <div class="block-head"><div><h2>Install</h2><p>Three steps the first time.</p></div></div>
+      <ol class="install">
+        <li><span class="num">1</span><div><h3>Unzip and move</h3><p>Open <code>Agent2-macOS.zip</code> and drag <code>Agent2.app</code> into Applications.</p></div></li>
+        <li><span class="num">2</span><div><h3>Open it once with right-click</h3><p>Early builds aren't notarised yet. Right-click Agent2 → <b>Open</b> → <b>Open</b>. After that it opens normally.</p></div></li>
+        <li><span class="num">3</span><div><h3>Allow the shortcut and microphone</h3><p>Grant <b>Accessibility</b> for ⌃⌥, plus <b>Microphone</b> and <b>Speech Recognition</b> for voice. <a class="more" href="/docs/install/">Full install guide →</a></p></div></li>
+      </ol>
+    </section>
+
+    <section class="rule">
+      <div class="block-head"><div><h2>Have an agent ready</h2><p>Agent2 uses agents you already have. Install at least one.</p></div></div>
+      <div class="cmds">
+        <div class="cmd"><span class="label">Claude Code</span><code>npm i -g @anthropic-ai/claude-code &amp;&amp; claude</code><button class="copy" data-copy>Copy</button></div>
+        <div class="cmd"><span class="label">Codex CLI</span><code>npm i -g @openai/codex &amp;&amp; codex</code><button class="copy" data-copy>Copy</button></div>
+      </div>
+      <p class="note">To link apps, also install the <a class="more" href="https://docs.composio.dev/docs/cli">Composio CLI →</a> Or skip the CLIs and add an Anthropic or OpenAI API key in Settings → Agents. <a class="more" href="/docs/api-keys/">API keys →</a></p>
+    </section>
+
+    <section class="rule">
+      <div class="block-head"><div><h2>Build from source</h2><p>Needs macOS 14+ and Xcode 16 or newer.</p></div><a class="btn btn-line btn-sm" href="/docs/build-from-source/">Guide</a></div>
+      <div class="cmds">
+        <div class="cmd"><span class="label">Clone</span><code>git clone {{REPO}}.git &amp;&amp; cd agent2</code><button class="copy" data-copy>Copy</button></div>
+        <div class="cmd"><span class="label">Build</span><code>./scripts/build-app.sh &amp;&amp; open dist/Agent2.app</code><button class="copy" data-copy>Copy</button></div>
+      </div>
+    </section>
+  </main>

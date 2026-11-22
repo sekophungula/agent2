@@ -1,0 +1,23 @@
+<p>Delegation is how the source splits a job. Agent2 tells the source which other agents are available and what each is good at; the source decides who does what.</p>
+<h2>How CLI sources delegate</h2>
+<p>Claude Code, Codex and the other command-line agents delegate by writing a tag in their reply:</p>
+<pre><code>I'll review the README myself and have Codex write the tests.
+
+&lt;delegate agent="codex"&gt;Add unit tests for src/parser.ts covering empty
+input and nested blocks. Run them and report the results.&lt;/delegate&gt;</code></pre>
+<p>Agent2 runs every delegated brief in parallel, then gives the results back to the source so it can finish. The source can delegate again, up to three rounds per request.</p>
+<h2>How API sources delegate</h2>
+<p>When the source is the Claude API or OpenAI API, it gets tools instead of tags:</p>
+<table>
+<thead><tr><th>Tool</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>delegate</code></td><td>Send a brief to another agent and get its result.</td></tr>
+<tr><td><code>search_history</code></td><td>Search your past Markdown conversations.</td></tr>
+<tr><td><code>composio_search</code></td><td>Find the right tool in your linked apps.</td></tr>
+<tr><td><code>composio_execute</code></td><td>Run that tool, after showing you a draft for anything that sends or posts.</td></tr>
+</tbody>
+</table>
+<h2>Choosing who can be delegated to</h2>
+<p>In Settings → Agents you can turn delegation off entirely, or untick individual agents. Desktop apps are never delegated to, because they can't run in the background.</p>
+<h2>Writing good briefs</h2>
+<p>The source is told that each delegated agent starts with no context, so briefs are written to be complete: the goal, the files or folder, and what to report back.</p>

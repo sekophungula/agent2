@@ -1,0 +1,15 @@
+<p>Autonomy sets what command-line agents may do on your Mac. Choose it in Settings → Agents → <b>What agents may do</b>.</p>
+<h2>Levels</h2>
+<table>
+<thead><tr><th>Level</th><th>Claude Code</th><th>Codex</th></tr></thead>
+<tbody>
+<tr><td>Ask first (default)</td><td>Default permissions: no edits or commands when run in the background</td><td><code>-s read-only</code></td></tr>
+<tr><td>Edit files in workspace</td><td><code>--permission-mode acceptEdits</code></td><td><code>-s workspace-write</code></td></tr>
+<tr><td>Full access</td><td><code>--dangerously-skip-permissions</code></td><td><code>-s danger-full-access</code></td></tr>
+</tbody>
+</table>
+<p class="callout warn"><b>Full access</b> lets agents run any command without asking. Use it only for work you'd be comfortable running yourself.</p>
+<h2>The workspace</h2>
+<p>Agents start in <code>~/Agent2/Workspace</code> unless you change it. Point it at a project folder to have agents work on that project.</p>
+<h2>Apps and messages</h2>
+<p>Whatever the level, agents are told to show you the exact draft of any email, post or message and wait for your yes before sending it through Composio.</p>

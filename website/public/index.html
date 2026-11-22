@@ -4,10 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agent2 — the middleman for your AI agents</title>
-  <meta name="description" content="Agent2 lives in your Mac's menu bar and gets Claude Code, Codex, Gemini and your API keys working together. Hold Control+Option and talk. Your history stays yours, in Markdown." />
+  <meta name="description" content="A macOS menu-bar app that gets Claude Code, Codex, Gemini and your API keys working together. Hold Control+Option and talk." />
   <meta property="og:title" content="Agent2 — the middleman for your AI agents" />
-  <meta property="og:description" content="One menu-bar app that routes work across Claude Code, Codex, Gemini and your connected apps." />
+  <meta property="og:description" content="A macOS menu-bar app that gets Claude Code, Codex, Gemini and your API keys working together. Hold Control+Option and talk." />
   <meta property="og:image" content="https://agent2.shakatec.co.za/assets/og.png" />
+  <meta property="og:url" content="https://agent2.shakatec.co.za/" />
   <meta name="theme-color" content="#0b0b0b" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,42 +17,47 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="announce"><b>NEW</b>Agent2 v0.1.1 for macOS<span class="hide-sm"> · delegation across Claude Code, Codex &amp; Gemini</span><a href="https://github.com/sekophungula/agent2/releases/latest">Release notes →</a></div>
-
   <header class="nav">
     <div class="nav-inner">
       <a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a>
       <nav class="links">
-        <a href="#how">How it works</a>
-        <a href="#features">Features</a>
-        <a href="#apps">Apps</a>
-        <a href="#faq">FAQ</a>
-        <a href="https://github.com/sekophungula/agent2#readme">Docs</a>
+        <a href="/docs/">Docs</a>
+        <a href="/integrations/">Integrations</a>
+        <a href="/changelog/">Changelog</a>
+        <a href="/download/">Download</a>
       </nav>
       <div class="nav-cta">
-        <a class="btn btn-line btn-sm" href="https://github.com/sekophungula/agent2">GitHub</a>
-        <a class="btn btn-white btn-sm" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">Download</a>
+        <a class="btn btn-line btn-sm gh" href="https://github.com/sekophungula/agent2"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span data-stars>GitHub</span></a>
+        <a class="btn btn-white btn-sm" href="/download/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11"/></svg>Download</a>
+        <button class="menu-btn" aria-label="Menu" aria-expanded="false" data-menu>☰</button>
       </div>
     </div>
+    <nav class="mobile-links" data-mobile>
+      <a href="/docs/">Docs</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a><a href="/download/">Download</a><a href="https://github.com/sekophungula/agent2">GitHub</a>
+    </nav>
   </header>
-
   <main class="frame">
-    <section class="hero" style="padding-left:0;padding-right:0">
-      <div class="pad">
-        <span class="label g">// Open source · macOS 14+ · Free</span>
-        <h1>The middleman for your <span class="mark">AI agents</span></h1>
-        <p class="lead">Agent2 lives in your menu bar and gets the agents you already pay for — <b>Claude Code, Codex, Gemini</b> and your API keys — working on one job together. Hold <span style="white-space:nowrap"><kbd>⌃</kbd> <kbd>⌥</kbd></span> and talk.</p>
-        <div class="cta">
-          <a class="btn btn-white" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 1.43c0 1.14-.47 2.23-1.2 3.02-.79.86-2.07 1.52-3.12 1.44-.13-1.1.42-2.27 1.14-3.03.81-.86 2.18-1.5 3.18-1.43zM20.5 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.5-4.12 3.52-1.54.01-1.93-1-4.02-.99-2.09.01-2.52 1.01-4.06 1-1.73-.02-3.05-1.77-4.04-3.33C-.04 15.9-.33 10.79 1.47 8.06c1.28-1.94 3.3-3.08 5.2-3.08 1.93 0 3.15 1.06 4.75 1.06 1.55 0 2.5-1.06 4.73-1.06 1.69 0 3.48.92 4.75 2.5-4.17 2.29-3.5 8.24-.4 9.62z"/></svg>
-            Download for macOS
-          </a>
-          <a class="btn btn-line" href="https://github.com/sekophungula/agent2">View source →</a>
-          <span class="aside">Bring your own subscription or API key</span>
-        </div>
+    <section class="hero center">
+      <a class="pill-link" href="/changelog/"><b>New</b>v0.1.1 · a squared-off redesign of the popover and settings<span>→</span></a>
+      <h1>The middleman for your <span class="mark">AI agents</span></h1>
+      <p class="lead">Agent2 lives in your Mac's menu bar and gets the agents you already pay for — <b>Claude Code, Codex, Gemini</b> and your API keys — working on one job together. Hold <span class="nw"><kbd>⌃</kbd> <kbd>⌥</kbd></span> and talk.</p>
+      <div class="cta">
+        <a class="btn btn-white" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 1.43c0 1.14-.47 2.23-1.2 3.02-.79.86-2.07 1.52-3.12 1.44-.13-1.1.42-2.27 1.14-3.03.81-.86 2.18-1.5 3.18-1.43zM20.5 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.5-4.12 3.52-1.54.01-1.93-1-4.02-.99-2.09.01-2.52 1.01-4.06 1-1.73-.02-3.05-1.77-4.04-3.33C-.04 15.9-.33 10.79 1.47 8.06c1.28-1.94 3.3-3.08 5.2-3.08 1.93 0 3.15 1.06 4.75 1.06 1.55 0 2.5-1.06 4.73-1.06 1.69 0 3.48.92 4.75 2.5-4.17 2.29-3.5 8.24-.4 9.62z"/></svg>Download for Mac</a>
+        <a class="btn btn-line" href="https://github.com/sekophungula/agent2">View on GitHub</a>
+      </div>
+      <p class="fine">Apple Silicon &amp; Intel · macOS 14+ · <a href="/docs/build-from-source/">Build from source</a></p>
+    </section>
+
+    <section class="showcase" data-tabs>
+      <div class="tabbar" role="tablist">
+        <button class="on" data-tab="delegate" role="tab" aria-selected="true">Delegate</button>
+        <button data-tab="chat" role="tab" aria-selected="false">Menu bar chat</button>
+        <button data-tab="history" role="tab" aria-selected="false">Markdown history</button>
+        <button data-tab="apps" role="tab" aria-selected="false">Apps</button>
+        <button data-tab="source" role="tab" aria-selected="false">Choose a source</button>
       </div>
 
-      <div class="console" aria-label="Agent2 routing a request across agents">
+      <div class="console" data-pane="delegate">
         <div class="console-bar">
           <span>~/Agent2</span><span class="sep">/</span><span>add-tests</span>
           <span class="right"><span class="hide-sm">source: claude-code</span><span class="tag run">Delegating</span></span>
@@ -78,143 +84,70 @@
         <div class="menubar-strip"><span></span><span>Finder</span><span>File</span><span>Edit</span><span>View</span>
           <span class="r"><img class="bird" src="/assets/logo-green.svg" alt="Agent2 in the menu bar" /><span>Sat 17:42</span></span></div>
       </div>
-    </section>
 
-    <section class="rule">
-      <div class="pad" style="padding-top:20px;padding-bottom:20px"><span class="label">// Detects the agents already on your Mac</span></div>
-      <div class="cells rule">
-        <div class="cell"><div class="top"><span class="n">Claude Code</span><span class="tag ok">CLI</span></div><code>claude -p</code></div>
-        <div class="cell"><div class="top"><span class="n">Codex CLI</span><span class="tag ok">CLI</span></div><code>codex exec</code></div>
-        <div class="cell"><div class="top"><span class="n">Gemini CLI</span><span class="tag ok">CLI</span></div><code>gemini -p</code></div>
-        <div class="cell"><div class="top"><span class="n">Cursor Agent</span><span class="tag ok">CLI</span></div><code>cursor-agent -p</code></div>
-        <div class="cell"><div class="top"><span class="n">OpenCode</span><span class="tag ok">CLI</span></div><code>opencode run</code></div>
-        <div class="cell"><div class="top"><span class="n">Anthropic API</span><span class="tag">Key</span></div><code>Keychain</code></div>
-        <div class="cell"><div class="top"><span class="n">OpenAI API</span><span class="tag">Key</span></div><code>Keychain</code></div>
-        <div class="cell"><div class="top"><span class="n">Claude · ChatGPT</span><span class="tag">Desktop</span></div><code>hand-off</code></div>
+      <div class="console pane-shot" data-pane="chat" hidden>
+        <div class="console-bar"><span>Agent2 · menu bar popover</span><span class="right"><span class="tag ok">✓ Ready</span></span></div>
+        <div class="shot-wrap"><img src="/assets/popover-chat.png" alt="The Agent2 popover: Claude Code delegates tests to Codex and reports back." width="440" height="580" loading="lazy" /></div>
+      </div>
+
+      <div class="console" data-pane="history" hidden>
+        <div class="console-bar"><span>~/Agent2/History/2026-11/</span><span>2026-11-22 1742 add-tests.md</span><span class="right"><span class="tag">Markdown</span></span></div>
+<pre class="md-file"><code><span class="c">---
+title: "Add tests while reviewing the README"
+started: 2026-11-22T17:42:08Z
+agents: ["Claude Code"]
+app: Agent2
+---</span>
+
+<span class="t"># Add tests while reviewing the README</span>
+
+<span class="t">### You · 17:42</span>
+Have Codex add tests to my project while you review the README
+
+<span class="c">&gt; **Agent2 → Codex CLI** · 17:42
+&gt; Add unit tests for src/parser.ts covering empty input and nested blocks.</span>
+
+<span class="t">### Claude Code · 17:44</span>
+Done. **Codex** added 6 parser tests (all passing), and I tightened the README.</code></pre>
+      </div>
+
+      <div class="console" data-pane="apps" hidden>
+        <div class="console-bar"><span>Settings → Apps</span><span class="right"><span class="tag ok">✓ Composio signed in</span></span></div>
+        <div class="apps">
+          <div class="app linked"><span class="n"><i>G</i>Gmail</span><span class="btn btn-line">✓ Linked</span></div>
+          <div class="app linked"><span class="n"><i>S</i>Slack</span><span class="btn btn-line">✓ Linked</span></div>
+          <div class="app linked"><span class="n"><i>GH</i>GitHub</span><span class="btn btn-line">✓ Linked</span></div>
+          <div class="app"><span class="n"><i>N</i>Notion</span><span class="btn btn-line">Link</span></div>
+          <div class="app"><span class="n"><i>L</i>Linear</span><span class="btn btn-line">Link</span></div>
+          <div class="app linked"><span class="n"><i>X</i>X</span><span class="btn btn-line">✓ Linked</span></div>
+          <div class="app"><span class="n"><i>in</i>LinkedIn</span><span class="btn btn-line">Link</span></div>
+          <div class="app"><span class="n"><i>+</i>500 more</span><a class="btn btn-line" href="/integrations/">Browse</a></div>
+        </div>
+      </div>
+
+      <div class="console pane-shot" data-pane="source" hidden>
+        <div class="console-bar"><span>Settings → Source</span><span class="right"><span class="tag">Only you change it</span></span></div>
+        <div class="shot-wrap wide"><img src="/assets/settings-source.png" alt="Agent2 settings: choosing the source agent." loading="lazy" /></div>
       </div>
     </section>
 
-    <section id="how">
+    <section class="rule">
+      <div class="trio">
+        <article><span class="label g">01 · Your agent, your plan</span><h3>Runs on what you already pay for</h3><p>Claude Code and Codex use your Claude or ChatGPT subscription through their own CLIs. API keys are optional and live in the Keychain.</p><a class="more" href="/docs/supported-agents/">Supported agents →</a></article>
+        <article><span class="label g">02 · Detached</span><h3>History that isn't stuck in one agent</h3><p>Every conversation is a Markdown file in a folder you choose. Switch from Claude Code to Codex and the context comes with you.</p><a class="more" href="/docs/history/">How history works →</a></article>
+        <article><span class="label g">03 · Composio</span><h3>Your apps, available to every agent</h3><p>Link Gmail, Slack, GitHub, X, LinkedIn and hundreds more once. Already set up in Claude Code or Codex? Agent2 uses that.</p><a class="more" href="/integrations/">Integrations →</a></article>
+      </div>
+    </section>
+
+    <section class="rule">
       <div class="sec-head">
         <div><span class="label g">// How it works</span><h2>You talk. One agent thinks. The right agents do the work.</h2></div>
-        <p>Agent2 doesn't do the heavy lifting. It tells your chosen agent what else is on your Mac, runs whatever it hands off in parallel, and keeps the record.</p>
+        <p>Agent2 doesn't do the heavy lifting. It tells your chosen agent what else is on your Mac, runs whatever it hands off in parallel, and keeps the record. <a class="more" href="/docs/delegation/">Read about delegation →</a></p>
       </div>
       <div class="steps">
-        <article class="step">
-          <span class="num">1</span>
-          <h3>Pick a source</h3>
-          <p>Agent2 finds agent CLIs, API keys and desktop apps. You choose which one is the brain. Only you ever change it.</p>
-          <div class="mini">
-            <div class="row on"><span>Claude Code</span><span>✓</span></div>
-            <div class="row"><span>Codex CLI</span><span></span></div>
-            <div class="row"><span>Gemini CLI</span><span></span></div>
-            <div class="row"><span>Claude API</span><span></span></div>
-          </div>
-        </article>
-        <article class="step">
-          <span class="num">2</span>
-          <h3>Hold ⌃⌥ and ask</h3>
-          <p>Speak from any app. Speech is transcribed on your Mac and sent to the source with your recent conversation.</p>
-          <div class="mini"><div class="keys"><kbd>⌃</kbd>+<kbd>⌥</kbd></div><div class="row"><span>● Listening…</span><span>0:03</span></div></div>
-        </article>
-        <article class="step">
-          <span class="num">3</span>
-          <h3>It delegates in parallel</h3>
-          <p>The source sends self-contained briefs to the agents best suited for each part, then merges the results.</p>
-          <div class="mini"><pre><span class="t">&lt;delegate agent="codex"&gt;</span>
-<span class="w">Add tests for src/parser.ts</span>
-<span class="t">&lt;/delegate&gt;</span></pre></div>
-        </article>
-      </div>
-      <div class="code">
-        <div class="code-bar"><span class="label">What the source agent writes</span><span class="tag">markdown</span></div>
-<pre><code><span class="c"># Claude Code (your source) splits the job</span>
-I'll review the README myself and have Codex write the tests.
-
-<span class="t">&lt;delegate</span> <span class="a">agent</span>=<span class="s">"codex"</span><span class="t">&gt;</span>Add unit tests for src/parser.ts covering empty
-input and nested blocks. Run them and report the results.<span class="t">&lt;/delegate&gt;</span>
-
-<span class="c"># Agent2 runs Codex, feeds the result back, and saves everything to</span>
-<span class="c"># ~/Agent2/History/2026-11/2026-11-22 1742 add-tests.md</span></code></pre>
-      </div>
-    </section>
-
-    <section id="features" class="rule">
-      <div class="sec-head">
-        <div><span class="label g">// Features</span><h2>A small app with reach into every agent you have.</h2></div>
-        <p>No Dock icon, no notch takeover, no Agent2 servers. A pixel bird in the menu bar and a shortcut you can hold from anywhere.</p>
-      </div>
-      <div class="features">
-        <article class="feature"><span class="label">Menu bar</span><h3>Always one click away</h3><p>Click the bird for the chat. Right-click to switch source or open history.</p></article>
-        <article class="feature"><span class="label">Voice</span><h3>Push-to-talk anywhere</h3><p>Hold Control + Option, speak, let go. A quick tap opens the chat for typing.</p></article>
-        <article class="feature"><span class="label">Delegation</span><h3>Real parallel hand-offs</h3><p>Work fans out to Claude Code, Codex, Gemini, Cursor or an API model, and comes back combined.</p></article>
-        <article class="feature"><span class="label">History</span><h3>Markdown you own</h3><p>One <code>.md</code> file per conversation. Switch from Claude Code to Codex and your context comes along.</p></article>
-        <article class="feature"><span class="label">Detached</span><h3>Tied to no vendor</h3><p>Agent2 never switches the source on its own. You change it in Settings whenever you like.</p></article>
-        <article class="feature"><span class="label">Local</span><h3>Your keys stay on your Mac</h3><p>Subscriptions run through each vendor's own CLI. API keys live in the macOS Keychain.</p></article>
-      </div>
-    </section>
-
-    <section id="apps">
-      <div class="split">
-        <div>
-          <span class="label g">// Apps · powered by Composio</span>
-          <div class="sec-head" style="padding:0;display:block"><h2>Link your socials and tools once. Every agent can use them.</h2></div>
-          <p class="lead" style="font-size:16px;margin:18px 0 0">Gmail, Slack, GitHub, Notion, Linear, X, LinkedIn, Instagram, Calendar and hundreds more through <a href="https://composio.dev" style="color:var(--text);border-bottom:1px solid var(--line-2)">Composio</a>. Already set up in Claude Code or Codex? Agent2 spots it and uses what you have.</p>
-          <ul class="ticks">
-            <li>Sign-in handled by Composio. Agent2 never sees your passwords.</li>
-            <li>One switch adds Composio to Claude Code and Codex.</li>
-            <li>Agents show you a draft before anything is sent or posted.</li>
-          </ul>
-        </div>
-        <div style="padding:0;display:flex;flex-direction:column">
-          <div class="console-bar"><span class="label">Settings → Apps</span><span class="right"><span class="tag ok">✓ Signed in</span></span></div>
-          <div class="apps" style="border-left:0;border-top:0">
-            <div class="app linked"><span class="n"><i>G</i>Gmail</span><span class="btn btn-line">✓ Linked</span></div>
-            <div class="app linked"><span class="n"><i>S</i>Slack</span><span class="btn btn-line">✓ Linked</span></div>
-            <div class="app linked"><span class="n"><i>GH</i>GitHub</span><span class="btn btn-line">✓ Linked</span></div>
-            <div class="app"><span class="n"><i>N</i>Notion</span><span class="btn btn-line">Link</span></div>
-            <div class="app"><span class="n"><i>L</i>Linear</span><span class="btn btn-line">Link</span></div>
-            <div class="app linked"><span class="n"><i>X</i>X</span><span class="btn btn-line">✓ Linked</span></div>
-            <div class="app"><span class="n"><i>in</i>LinkedIn</span><span class="btn btn-line">Link</span></div>
-            <div class="app"><span class="n"><i>IG</i>Instagram</span><span class="btn btn-line">Link</span></div>
-            <div class="app"><span class="n"><i>C</i>Calendar</span><span class="btn btn-line">Link</span></div>
-            <div class="app"><span class="n"><i>D</i>Drive</span><span class="btn btn-line">Link</span></div>
-            <div class="app"><span class="n"><i>YT</i>YouTube</span><span class="btn btn-line">Link</span></div>
-            <div class="app"><span class="n"><i>+</i>500 more</span><span class="btn btn-line">Search</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="rule">
-      <div class="split" style="border-top:0">
-        <div style="padding:0">
-          <div class="shot" style="border:0">
-            <div class="console-bar"><span class="label">Agent2 · menu bar popover</span></div>
-            <img src="/assets/popover-chat.png" alt="The Agent2 popover: Claude Code delegates tests to Codex and reports back." loading="lazy" style="max-width:440px;margin:0 auto" />
-          </div>
-        </div>
-        <div>
-          <span class="label g">// You stay in charge</span>
-          <div class="sec-head" style="padding:0;display:block"><h2>The source is yours to pick. Agent2 never switches it.</h2></div>
-          <p class="lead" style="font-size:16px;margin:18px 0 0">Use Claude Code on Monday and Codex on Tuesday. Agent2 keeps the same Markdown history and hands the recent conversation to whichever agent you chose.</p>
-          <ul class="ticks">
-            <li>Autonomy: ask first, edit the workspace, or full access</li>
-            <li>Choose which agents the source may delegate to</li>
-            <li>Claude and ChatGPT desktop apps supported as hand-off targets</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <section id="faq" class="rule">
-      <div class="sec-head"><div><span class="label g">// FAQ</span><h2>Questions</h2></div></div>
-      <div class="faq">
-        <details><summary>Do I need an API key?</summary><p>No. If Claude Code or Codex is installed and signed in with your Claude or ChatGPT plan, Agent2 uses that. API keys are optional and stay in your Keychain.</p></details>
-        <details><summary>Where is my history stored?</summary><p>In <code>~/Agent2/History</code> by default, one Markdown file per conversation, grouped by month. You can move the folder in Settings → History.</p></details>
-        <details><summary>Why does it ask for Accessibility access?</summary><p>macOS only lets an app see a shortcut held in other apps, like Control + Option, when it has Accessibility access. Agent2 uses it for the shortcut and nothing else.</p></details>
-        <details><summary>Is my voice sent anywhere?</summary><p>Speech is transcribed by Apple's recogniser on your Mac where supported. Only the resulting text goes to the agent you chose.</p></details>
-        <details><summary>macOS says it's from an unidentified developer.</summary><p>Early builds aren't notarised. Right-click Agent2.app → Open and confirm once, or build it yourself with <code>./scripts/build-app.sh</code>.</p></details>
+        <article class="step"><span class="num">1</span><h3>Pick a source</h3><p>Agent2 finds agent CLIs, API keys and desktop apps. You choose which one is the brain.</p></article>
+        <article class="step"><span class="num">2</span><h3>Hold ⌃⌥ and ask</h3><p>Speak from any app. Speech is transcribed on your Mac and sent with your recent conversation.</p></article>
+        <article class="step"><span class="num">3</span><h3>It delegates in parallel</h3><p>The source sends self-contained briefs to the agents best suited for each part, then merges the results.</p></article>
       </div>
     </section>
 
@@ -222,22 +155,51 @@ input and nested blocks. Run them and report the results.<span class="t">&lt;/de
       <img src="/assets/logo-green.svg" alt="" />
       <h2>Stop juggling agents. Let them work together.</h2>
       <div class="cta">
-        <a class="btn btn-white" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">Download Agent2</a>
-        <a class="btn btn-line" href="https://github.com/sekophungula/agent2">Star on GitHub</a>
+        <a class="btn btn-white" href="/download/">Download Agent2</a>
+        <a class="btn btn-line" href="/docs/">Read the docs</a>
       </div>
     </section>
   </main>
 
+
   <footer class="footer">
     <div class="frame">
       <div class="foot">
-        <div><a class="brand" href="/" style="color:var(--text);font-size:17px;padding:0"><img src="/assets/logo-green.svg" alt="" />Agent2</a><p>The middleman for your AI agents. A macOS menu-bar app.</p></div>
-        <div><span class="label">Product</span><a href="#how">How it works</a><a href="#features">Features</a><a href="#apps">Apps</a></div>
-        <div><span class="label">Resources</span><a href="https://github.com/sekophungula/agent2#readme">Docs</a><a href="https://github.com/sekophungula/agent2/releases">Releases</a><a href="#faq">FAQ</a></div>
-        <div><span class="label">Source</span><a href="https://github.com/sekophungula/agent2">GitHub</a><a href="https://github.com/sekophungula/agent2/blob/main/LICENSE">MIT License</a><a href="https://shakatec.co.za">Shakatec</a></div>
+        <div><a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a><p>The middleman for your AI agents. A macOS menu-bar app.</p></div>
+        <div><span class="label">Product</span><a href="/download/">Download</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a></div>
+        <div><span class="label">Docs</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/troubleshooting/">Troubleshooting</a></div>
+        <div><span class="label">Source</span><a href="https://github.com/sekophungula/agent2">GitHub</a><a href="https://github.com/sekophungula/agent2/releases">Releases</a><a href="https://github.com/sekophungula/agent2/blob/main/LICENSE">MIT License</a></div>
       </div>
-      <div class="legal"><span>© 2026 Shakatec</span><span class="sw">#548A47</span></div>
+      <div class="legal"><span>© 2026 Shakatec</span><span class="sw">v0.1.1</span></div>
     </div>
   </footer>
+
+  <script>
+  (function () {
+    var b = document.querySelector('[data-menu]'), m = document.querySelector('[data-mobile]');
+    if (b && m) b.addEventListener('click', function () { var o = m.classList.toggle('open'); b.setAttribute('aria-expanded', o); });
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var t = btn.closest('.cmd').querySelector('code').innerText;
+        navigator.clipboard.writeText(t).then(function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); });
+      });
+    });
+    document.querySelectorAll('[data-tabs]').forEach(function (root) {
+      var tabs = root.querySelectorAll('[data-tab]'), panes = root.querySelectorAll('[data-pane]');
+      tabs.forEach(function (t) { t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.toggle('on', x === t); x.setAttribute('aria-selected', x === t); });
+        panes.forEach(function (p) { p.hidden = p.dataset.pane !== t.dataset.tab; });
+      }); });
+    });
+    var q = document.querySelector('[data-docsearch]');
+    if (q) q.addEventListener('input', function () {
+      var v = q.value.toLowerCase();
+      document.querySelectorAll('.docs-nav a').forEach(function (a) { a.hidden = v && a.textContent.toLowerCase().indexOf(v) < 0; });
+    });
+    var s = document.querySelector('[data-stars]');
+    if (s) fetch('https://api.github.com/repos/sekophungula/agent2').then(function (r) { return r.json(); })
+      .then(function (d) { if (d.stargazers_count > 0) s.textContent = d.stargazers_count.toLocaleString(); }).catch(function () {});
+  })();
+  </script>
 </body>
 </html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Integrations — Agent2</title>
+  <meta name="description" content="The agents Agent2 works with and the apps you can link through Composio." />
+  <meta property="og:title" content="Integrations — Agent2" />
+  <meta property="og:description" content="The agents Agent2 works with and the apps you can link through Composio." />
+  <meta property="og:image" content="https://agent2.shakatec.co.za/assets/og.png" />
+  <meta property="og:url" content="https://agent2.shakatec.co.za/integrations/" />
+  <meta name="theme-color" content="#0b0b0b" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a>
+      <nav class="links">
+        <a href="/docs/">Docs</a>
+        <a href="/integrations/" class="on">Integrations</a>
+        <a href="/changelog/">Changelog</a>
+        <a href="/download/">Download</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-line btn-sm gh" href="https://github.com/sekophungula/agent2"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span data-stars>GitHub</span></a>
+        <a class="btn btn-white btn-sm" href="/download/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11"/></svg>Download</a>
+        <button class="menu-btn" aria-label="Menu" aria-expanded="false" data-menu>☰</button>
+      </div>
+    </div>
+    <nav class="mobile-links" data-mobile>
+      <a href="/docs/">Docs</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a><a href="/download/">Download</a><a href="https://github.com/sekophungula/agent2">GitHub</a>
+    </nav>
+  </header>
+  <main class="frame">
+    <section class="page-head">
+      <span class="label g">// Integrations</span>
+      <h1>Agents and apps</h1>
+      <p class="lead">Agent2 works with the agents already on your Mac, and links your accounts through <a class="more" href="https://composio.dev">Composio</a> so every agent can act in them.</p>
+    </section>
+
+    <section class="rule">
+      <div class="block-head"><div><h2>Agents</h2><p>Detected automatically. Pick one as the source; the rest can take delegated work.</p></div><a class="btn btn-line btn-sm" href="/docs/supported-agents/">Docs</a></div>
+      <div class="cells">
+        <div class="cell"><div class="top"><span class="n">Claude Code</span><span class="tag ok">CLI</span></div><p>Coding, files, terminal work and multi-step tasks. Uses your Claude plan.</p><code>claude -p</code></div>
+        <div class="cell"><div class="top"><span class="n">Codex CLI</span><span class="tag ok">CLI</span></div><p>Implementing features, refactors and tests. Uses your ChatGPT plan.</p><code>codex exec</code></div>
+        <div class="cell"><div class="top"><span class="n">Gemini CLI</span><span class="tag ok">CLI</span></div><p>Very long documents, large codebases and research with Google Search.</p><code>gemini -p</code></div>
+        <div class="cell"><div class="top"><span class="n">Cursor Agent</span><span class="tag ok">CLI</span></div><p>Cursor's coding agent for editing code in a project.</p><code>cursor-agent -p</code></div>
+        <div class="cell"><div class="top"><span class="n">OpenCode</span><span class="tag ok">CLI</span></div><p>Open-source coding agent that works with many model providers.</p><code>opencode run</code></div>
+        <div class="cell"><div class="top"><span class="n">Claude API</span><span class="tag">Key</span></div><p>Claude through your Anthropic API key, with Composio tools.</p><code>claude-opus-5-5</code></div>
+        <div class="cell"><div class="top"><span class="n">OpenAI API</span><span class="tag">Key</span></div><p>OpenAI models through your API key, with Composio tools.</p><code>Responses API</code></div>
+        <div class="cell"><div class="top"><span class="n">Claude · ChatGPT apps</span><span class="tag">Desktop</span></div><p>Agent2 copies the prompt and opens the app for you to paste.</p><code>hand-off</code></div>
+      </div>
+    </section>
+
+    <section class="rule">
+      <div class="block-head"><div><h2>Apps through Composio</h2><p>Sign in once in Settings → Apps, then link the accounts you want. Composio handles the sign-in; Agent2 never sees your passwords.</p></div><a class="btn btn-line btn-sm" href="/docs/composio/">Docs</a></div>
+      <div class="apps big">
+        <div class="app"><span class="n"><i>G</i>Gmail</span><small>Email</small></div>
+        <div class="app"><span class="n"><i>GC</i>Google Calendar</span><small>Calendar</small></div>
+        <div class="app"><span class="n"><i>GD</i>Google Drive</span><small>Files</small></div>
+        <div class="app"><span class="n"><i>S</i>Slack</span><small>Chat</small></div>
+        <div class="app"><span class="n"><i>GH</i>GitHub</span><small>Code</small></div>
+        <div class="app"><span class="n"><i>N</i>Notion</span><small>Docs</small></div>
+        <div class="app"><span class="n"><i>L</i>Linear</span><small>Issues</small></div>
+        <div class="app"><span class="n"><i>X</i>X (Twitter)</span><small>Social</small></div>
+        <div class="app"><span class="n"><i>in</i>LinkedIn</span><small>Social</small></div>
+        <div class="app"><span class="n"><i>IG</i>Instagram</span><small>Social</small></div>
+        <div class="app"><span class="n"><i>f</i>Facebook</span><small>Social</small></div>
+        <div class="app"><span class="n"><i>YT</i>YouTube</span><small>Video</small></div>
+        <div class="app"><span class="n"><i>D</i>Discord</span><small>Chat</small></div>
+        <div class="app"><span class="n"><i>SP</i>Spotify</span><small>Music</small></div>
+        <div class="app"><span class="n"><i>H</i>HubSpot</span><small>CRM</small></div>
+        <div class="app"><span class="n"><i>A</i>Airtable</span><small>Data</small></div>
+      </div>
+      <p class="note">These are shortcuts in Settings. Any app Composio supports can be linked, and agents can search for its tools.</p>
+    </section>
+
+    <section class="rule split">
+      <div>
+        <span class="label g">// Already using Composio?</span>
+        <h3 class="h3">Agent2 spots it</h3>
+        <p class="muted">If Composio is already set up in Claude Code or Codex, Agent2 detects it and shows it as linked. If not, one button adds it to both.</p>
+      </div>
+      <div>
+        <span class="label g">// Safe by default</span>
+        <h3 class="h3">Drafts before anything is sent</h3>
+        <p class="muted">Agents are told to show you the exact email, post or message and wait for your yes before sending or posting anything.</p>
+      </div>
+    </section>
+  </main>
+
+
+  <footer class="footer">
+    <div class="frame">
+      <div class="foot">
+        <div><a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a><p>The middleman for your AI agents. A macOS menu-bar app.</p></div>
+        <div><span class="label">Product</span><a href="/download/">Download</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a></div>
+        <div><span class="label">Docs</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/troubleshooting/">Troubleshooting</a></div>
+        <div><span class="label">Source</span><a href="https://github.com/sekophungula/agent2">GitHub</a><a href="https://github.com/sekophungula/agent2/releases">Releases</a><a href="https://github.com/sekophungula/agent2/blob/main/LICENSE">MIT License</a></div>
+      </div>
+      <div class="legal"><span>© 2026 Shakatec</span><span class="sw">v0.1.1</span></div>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var b = document.querySelector('[data-menu]'), m = document.querySelector('[data-mobile]');
+    if (b && m) b.addEventListener('click', function () { var o = m.classList.toggle('open'); b.setAttribute('aria-expanded', o); });
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var t = btn.closest('.cmd').querySelector('code').innerText;
+        navigator.clipboard.writeText(t).then(function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); });
+      });
+    });
+    document.querySelectorAll('[data-tabs]').forEach(function (root) {
+      var tabs = root.querySelectorAll('[data-tab]'), panes = root.querySelectorAll('[data-pane]');
+      tabs.forEach(function (t) { t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.toggle('on', x === t); x.setAttribute('aria-selected', x === t); });
+        panes.forEach(function (p) { p.hidden = p.dataset.pane !== t.dataset.tab; });
+      }); });
+    });
+    var q = document.querySelector('[data-docsearch]');
+    if (q) q.addEventListener('input', function () {
+      var v = q.value.toLowerCase();
+      document.querySelectorAll('.docs-nav a').forEach(function (a) { a.hidden = v && a.textContent.toLowerCase().indexOf(v) < 0; });
+    });
+    var s = document.querySelector('[data-stars]');
+    if (s) fetch('https://api.github.com/repos/sekophungula/agent2').then(function (r) { return r.json(); })
+      .then(function (d) { if (d.stargazers_count > 0) s.textContent = d.stargazers_count.toLocaleString(); }).catch(function () {});
+  })();
+  </script>
+</body>
+</html>

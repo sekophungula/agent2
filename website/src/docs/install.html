@@ -1,0 +1,27 @@
+<h2>Requirements</h2>
+<ul>
+<li>macOS 14 Sonoma or newer, on Apple Silicon or Intel.</li>
+<li>At least one agent: Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, or an Anthropic or OpenAI API key.</li>
+</ul>
+<h2>Download and open</h2>
+<ol>
+<li>Download <a href="{{ZIP}}"><code>Agent2-macOS.zip</code></a> and open it.</li>
+<li>Drag <code>Agent2.app</code> into <b>Applications</b>.</li>
+<li>The first time, right-click Agent2 → <b>Open</b> → <b>Open</b>. Early builds aren't notarised, so macOS asks once.</li>
+</ol>
+<p>Agent2 appears in the menu bar as a pixel bird. There's no Dock icon.</p>
+<h2>Grant permissions</h2>
+<table>
+<thead><tr><th>Permission</th><th>Why</th><th>When it's asked</th></tr></thead>
+<tbody>
+<tr><td>Accessibility</td><td>To notice ⌃ Control + ⌥ Option held while you're in other apps.</td><td>First launch</td></tr>
+<tr><td>Microphone</td><td>To hear you while you hold the shortcut.</td><td>First time you talk</td></tr>
+<tr><td>Speech Recognition</td><td>To turn your voice into text, on your Mac where supported.</td><td>First time you talk</td></tr>
+</tbody>
+</table>
+<p class="callout">You can use Agent2 without any of these by clicking the bird and typing.</p>
+<h2>Install an agent</h2>
+<p>If Agent2 finds no agents, install one and sign in once in Terminal:</p>
+<div class="cmd"><span class="label">Claude Code</span><code>npm i -g @anthropic-ai/claude-code &amp;&amp; claude</code><button class="copy" data-copy>Copy</button></div>
+<div class="cmd"><span class="label">Codex CLI</span><code>npm i -g @openai/codex &amp;&amp; codex</code><button class="copy" data-copy>Copy</button></div>
+<p>Then open Settings → Source and click <b>Scan again</b>. Or add an API key instead; see <a href="/docs/api-keys/">API keys</a>.</p>

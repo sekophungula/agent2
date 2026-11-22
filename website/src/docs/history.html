@@ -1,0 +1,31 @@
+<p>Every conversation is saved as a Markdown file that belongs to Agent2, not to any agent. Switch from Claude Code to Codex, or between sessions, and your history comes with you.</p>
+<h2>Where files go</h2>
+<pre><code>~/Agent2/History/
+  README.md
+  2026-11/
+    2026-11-22 1742 add-tests.md
+    2026-11-22 1910 weekly-email-summary.md</code></pre>
+<p>Change the folder in Settings → History, for example to a synced folder or a notes vault.</p>
+<h2>What a file looks like</h2>
+<pre><code>---
+id: 6F1C2A90-…
+title: "Add tests while reviewing the README"
+started: 2026-11-22T17:42:08Z
+agents: ["Claude Code"]
+app: Agent2
+---
+
+# Add tests while reviewing the README
+
+### You · 17:42
+Have Codex add tests to my project while you review the README
+
+&gt; **Agent2 → Codex CLI** · 17:42
+&gt; Add unit tests for src/parser.ts covering empty input and nested blocks.
+
+### Claude Code · 17:44
+Done. **Codex** added 6 parser tests (all passing), and I tightened the README.</code></pre>
+<h2>Context between agents</h2>
+<p>Each request sends the most recent turns of the current conversation to the source, 12 by default. Change it under Settings → History. Agents can also search older conversations when they need to.</p>
+<h2>Continuing a conversation</h2>
+<p>Open Settings → History and click <b>Continue</b> on any file. It loads into the popover and the next request picks up from there, whichever agent is now the source.</p>

@@ -1,0 +1,24 @@
+<h2>Requirements</h2>
+<ul><li>macOS 14 or newer</li><li>Xcode 16 or newer (Swift 5.10+)</li></ul>
+<h2>Build the app</h2>
+<div class="cmd"><span class="label">Clone</span><code>git clone {{REPO}}.git &amp;&amp; cd agent2</code><button class="copy" data-copy>Copy</button></div>
+<div class="cmd"><span class="label">Build</span><code>./scripts/build-app.sh</code><button class="copy" data-copy>Copy</button></div>
+<p>This builds a universal release and writes <code>dist/Agent2.app</code> and <code>dist/Agent2-macOS.zip</code>.</p>
+<h2>Developer helpers</h2>
+<pre><code>cd app &amp;&amp; swift build
+.build/debug/Agent2 --ask "summarise my week"     # one request, no UI
+.build/debug/Agent2 --snapshot /tmp/agent2-shots  # render the UI to PNGs
+.build/debug/Agent2 --export-assets /tmp/assets   # icons and logo SVGs</code></pre>
+<h2>Project layout</h2>
+<table>
+<thead><tr><th>File</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>Agents.swift</code></td><td>Finds CLIs, API keys and desktop apps</td></tr>
+<tr><td><code>Runners.swift</code></td><td>Runs each kind of agent</td></tr>
+<tr><td><code>Orchestrator.swift</code></td><td>System prompt, delegation and tools</td></tr>
+<tr><td><code>History.swift</code></td><td>Markdown history</td></tr>
+<tr><td><code>Composio.swift</code></td><td>Composio sign-in, links and tools</td></tr>
+<tr><td><code>Voice.swift</code></td><td>Shortcut and speech</td></tr>
+<tr><td><code>website/</code></td><td>This site. Run <code>python3 build.py</code> to regenerate it.</td></tr>
+</tbody>
+</table>

@@ -1,0 +1,17 @@
+<p>Agent2 looks for these when it starts and whenever you click <b>Scan again</b>.</p>
+<h2>Command-line agents</h2>
+<table>
+<thead><tr><th>Agent</th><th>Command Agent2 runs</th><th>Uses</th></tr></thead>
+<tbody>
+<tr><td>Claude Code</td><td><code>claude -p --output-format stream-json</code></td><td>Your Claude plan</td></tr>
+<tr><td>Codex CLI</td><td><code>codex exec</code></td><td>Your ChatGPT plan</td></tr>
+<tr><td>Gemini CLI</td><td><code>gemini -p</code></td><td>Your Google account</td></tr>
+<tr><td>Cursor Agent</td><td><code>cursor-agent -p</code></td><td>Your Cursor plan</td></tr>
+<tr><td>OpenCode</td><td><code>opencode run</code></td><td>Whichever provider you set up</td></tr>
+</tbody>
+</table>
+<p>Agent2 looks on your <code>PATH</code> plus the usual install folders: Homebrew, <code>~/.local/bin</code>, npm, pnpm, Volta, Bun and Cargo globals.</p>
+<h2>API keys</h2>
+<p>Add an Anthropic or OpenAI key in Settings → Agents and it shows up as <b>Claude API</b> or <b>OpenAI API</b>. See <a href="/docs/api-keys/">API keys</a>.</p>
+<h2>Desktop apps</h2>
+<p>The Claude and ChatGPT desktop apps are detected too. They can't run in the background, so Agent2 hands off to them: it copies your prompt and opens the app.</p>

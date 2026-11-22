@@ -83,7 +83,7 @@ cd app && swift build
 | `app/Sources/Agent2/Composio.swift` | Composio CLI: sign in, link apps, add to agents, search/execute tools |
 | `app/Sources/Agent2/Voice.swift` | ⌃⌥ push-to-talk and on-device speech recognition |
 | `app/Sources/Agent2/PixelBird.swift` | The logo, drawn from one pixel grid for the menu bar, icon and website |
-| `website/` | agent2.shakatec.co.za (Cloudflare Workers static assets) |
+| `website/` | agent2.shakatec.co.za: home, docs, integrations, changelog and download pages. Edit `website/src/`, then run `python3 website/build.py` |
 
 ## Autonomy
 
