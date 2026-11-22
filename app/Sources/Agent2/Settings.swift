@@ -15,6 +15,19 @@ enum Autonomy: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// Where Agent2 shows itself.
+enum Placement: String, CaseIterable, Identifiable {
+    case auto, notch, menuBar
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .auto: return "Notch if this Mac has one, otherwise the menu bar"
+        case .notch: return "Notch"
+        case .menuBar: return "Menu bar"
+        }
+    }
+}
+
 /// User settings. The *source* agent is only ever changed here, by the user:
 /// Agent2 never switches it on its own.
 @MainActor
@@ -30,7 +43,10 @@ final class AppSettings: ObservableObject {
     @Published var workspaceFolder: String { didSet { d.set(workspaceFolder, forKey: "workspaceFolder") } }
     @Published var anthropicModel: String { didSet { d.set(anthropicModel, forKey: "anthropicModel") } }
     @Published var openAIModel: String { didSet { d.set(openAIModel, forKey: "openAIModel") } }
+    /// Read replies to *typed* messages aloud too (voice requests are always answered out loud).
     @Published var speakReplies: Bool { didSet { d.set(speakReplies, forKey: "speakReplies") } }
+    @Published var speakVoiceReplies: Bool { didSet { d.set(speakVoiceReplies, forKey: "speakVoiceReplies") } }
+    @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
 
@@ -48,6 +64,8 @@ final class AppSettings: ObservableObject {
         anthropicModel = d.string(forKey: "anthropicModel") ?? "claude-opus-5-5"
         openAIModel = d.string(forKey: "openAIModel") ?? "gpt-6.1-sol"
         speakReplies = d.object(forKey: "speakReplies") as? Bool ?? false
+        speakVoiceReplies = d.object(forKey: "speakVoiceReplies") as? Bool ?? true
+        placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12
         anthropicKey = Keychain.get("anthropic") ?? ""

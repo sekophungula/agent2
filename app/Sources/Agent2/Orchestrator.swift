@@ -11,8 +11,9 @@ final class Orchestrator: ObservableObject {
     @Published var conversation = Conversation()
     @Published var isWorking = false
     @Published var status: String = ""
+    /// True while the current request came from the ⌃⌥ voice shortcut.
+    @Published private(set) var voiceRequest = false
     private var cancel: CancelToken?
-    private let speech = AVSpeechSynthesizer()
 
     private let delegatePattern = try! NSRegularExpression(
         pattern: #"<delegate\s+agent="([^"]+)"\s*>([\s\S]*?)</delegate>"#)
@@ -35,12 +36,21 @@ final class Orchestrator: ObservableObject {
         isWorking = false
     }
 
-    func send(_ text: String) {
+    /// - Parameter spoken: the request came from voice, so the answer is read aloud.
+    func send(_ text: String, spoken: Bool = false) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isWorking else { return }
+        guard !text.isEmpty else { return }
+        if isWorking {
+            if spoken { Speaker.shared.speak("I'm still on your last request. Give me a moment.") }
+            return
+        }
+        Speaker.shared.stop()
+        voiceRequest = spoken
         let registry = AgentRegistry.shared
         guard let source = registry.source else {
-            append(.init(role: .assistant, agent: "Agent2", text: "Pick a source agent in Settings first. Agent2 found none on this Mac yet: install Claude Code or Codex, or add an API key."))
+            let msg = "Pick a source agent in Settings first. Agent2 found none on this Mac yet: install Claude Code or Codex, or add an API key."
+            append(.init(role: .assistant, agent: "Agent2", text: msg))
+            if spoken { Speaker.shared.speak("I don't have an agent to work with yet. Open Agent2's settings and pick one.") }
             return
         }
         if conversation.turns.isEmpty { conversation.title = String(text.prefix(60)) }
@@ -54,7 +64,7 @@ final class Orchestrator: ObservableObject {
 
         let settings = AppSettings.shared
         let delegates = registry.delegates
-        let system = systemPrompt(source: source, delegates: delegates)
+        let system = systemPrompt(source: source, delegates: delegates, spoken: spoken)
         let prompt = promptWithContext(history: history, message: text, turns: settings.contextTurns)
         let ctx = makeContext(token: token, delegates: delegates)
 
@@ -70,7 +80,7 @@ final class Orchestrator: ObservableObject {
                     let results = await runDelegations(tasks, ctx: ctx)
                     status = "\(source.name) is combining the results…"
                     let followUp = "Results from the agents you delegated to:\n\n" + results
-                        + "\n\nNow give the person the final answer. Delegate again only if something essential is still missing."
+                        + "\n\nNow tell the person, briefly, what was done. Delegate again only if something essential is still missing."
                     reply = try await Runner.run(source, prompt: promptWithContext(history: conversation.turns, message: followUp, turns: settings.contextTurns),
                                                  system: system, model: nil, ctx: ctx)
                 }
@@ -78,20 +88,29 @@ final class Orchestrator: ObservableObject {
             } catch is CancellationError {
                 finish(reply: "Stopped.", from: source)
             } catch {
-                finish(reply: "⚠️ \(error.localizedDescription)", from: source)
+                finish(reply: "⚠️ \(error.localizedDescription)", from: source, failed: true)
             }
         }
     }
 
-    private func finish(reply: String, from source: AgentInfo) {
+    private func finish(reply: String, from source: AgentInfo, failed: Bool = false) {
         let text = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         append(.init(role: .assistant, agent: source.name, text: text.isEmpty ? "(no reply)" : text))
         isWorking = false
         status = ""
         cancel = nil
-        if AppSettings.shared.speakReplies, !text.isEmpty {
-            speech.speak(AVSpeechUtterance(string: String(text.prefix(600))))
+        let s = AppSettings.shared
+        guard voiceRequest ? s.speakVoiceReplies : s.speakReplies, !text.isEmpty, text != "Stopped." else { return }
+        Speaker.shared.speak(failed ? "That didn't work. " + Orchestrator.shortError(text) : text)
+    }
+
+    /// A one-line, speakable version of an error.
+    static func shortError(_ text: String) -> String {
+        let t = Speaker.spoken(text)
+        if t.localizedCaseInsensitiveContains("signed in") || t.localizedCaseInsensitiveContains("authenticate") {
+            return "Your agent isn't signed in. Open Terminal, run it once and sign in."
         }
+        return t.count > 160 ? "Open Agent2 to see what went wrong." : t
     }
 
     func logActivity(_ agent: String, _ text: String) {
@@ -105,12 +124,26 @@ final class Orchestrator: ObservableObject {
 
     // MARK: Prompts
 
-    private func systemPrompt(source: AgentInfo, delegates: [AgentInfo]) -> String {
+    private func systemPrompt(source: AgentInfo, delegates: [AgentInfo], spoken: Bool) -> String {
         let s = AppSettings.shared
         var p = """
-        You are the brain of Agent2, a menu-bar assistant on the person's Mac. Agent2 is a middleman: it does not do the heavy lifting itself, it gets the right agents and tools to do it well. The person usually talks to you by voice (they hold Control+Option), so their words may be loose: work out what they want.
+        You are the brain of Agent2, a helper on the person's Mac. Agent2 is extra help, not a chat app: the person asks for something to be done, you (and the agents you hand work to) do it, and you tell them what you did. The person usually talks to you by voice (they hold Control+Option), so their words may be loose: work out what they want.
 
-        Reply in plain, warm, short Markdown. Lead with the result. Never invent facts, files or links.
+        How to reply:
+        - One to three short sentences saying what you did or found, like a capable assistant reporting back. Lead with the outcome.
+        - No tables, headings, bullet lists, code blocks or long explanations. If there's a long result (a document, code, a list), save it to a file in the workspace and say where it is.
+        - If you need something from them (a choice, a confirmation, a missing detail), ask one short question.
+        - Never invent facts, files or links.
+        """
+        if spoken {
+            p += """
+
+
+            This reply will be read aloud by text-to-speech. Write plain spoken sentences only: no Markdown, emoji, symbols or URLs, and don't read out file paths (say "the file in your workspace" instead).
+            """
+        }
+        p += """
+
 
         Workspace for files you make: \(s.workspaceFolder)
         Past conversations (Markdown, one file per conversation) are in: \(s.historyFolder)

@@ -114,3 +114,95 @@ enum PixelBird {
             .write(to: dir.appendingPathComponent("icon-512.png"))
     }
 }
+
+/// Background for the Agent2.dmg window: Agent2 on the left, Applications on the
+/// right, a green arrow between them. `Agent2 --dmg-background <dir>` writes
+/// background.png (640×400) and background@2x.png.
+enum DMGBackground {
+    static let size = NSSize(width: 640, height: 400)
+    static let appIcon = NSPoint(x: 170, y: 200)      // Finder coordinates (from the top-left)
+    static let appsIcon = NSPoint(x: 470, y: 200)
+
+    static func write(to dir: URL) throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        for scale in [1, 2] {
+            let rep = render(scale: CGFloat(scale))
+            try rep.representation(using: .png, properties: [:])!
+                .write(to: dir.appendingPathComponent(scale == 1 ? "background.png" : "background@2x.png"))
+        }
+    }
+
+    static func render(scale: CGFloat) -> NSBitmapImageRep {
+        let w = Int(size.width * scale), h = Int(size.height * scale)
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8,
+                                   samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                   colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        let green = NSColor(srgbRed: 0x54 / 255, green: 0x8A / 255, blue: 0x47 / 255, alpha: 1)
+        let greenHi = NSColor(srgbRed: 0x7C / 255, green: 0xBA / 255, blue: 0x6B / 255, alpha: 1)
+        let line = NSColor(white: 1, alpha: 0.06)
+        let muted = NSColor(white: 0.56, alpha: 1)
+
+        // Near-black with a faint 32pt grid, like the website.
+        NSColor(srgbRed: 0x0B / 255, green: 0x0B / 255, blue: 0x0B / 255, alpha: 1).setFill()
+        NSRect(origin: .zero, size: size).fill()
+        line.setFill()
+        stride(from: 0.0, through: size.width, by: 32).forEach { NSRect(x: $0, y: 0, width: 1, height: size.height).fill() }
+        stride(from: 0.0, through: size.height, by: 32).forEach { NSRect(x: 0, y: $0, width: size.width, height: 1).fill() }
+
+        // Header: bird + wordmark, and a mono label.
+        NSGraphicsContext.current?.shouldAntialias = false
+        PixelBird.draw(in: NSRect(x: 32, y: size.height - 58, width: 22, height: 26), color: greenHi)
+        NSGraphicsContext.current?.shouldAntialias = true
+        ("Agent2" as NSString).draw(at: NSPoint(x: 62, y: size.height - 55),
+                                    withAttributes: [.font: NSFont.systemFont(ofSize: 20, weight: .semibold), .foregroundColor: NSColor.white])
+        let mono = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .medium)
+        let tag = "// INSTALL"
+        let tagAttrs: [NSAttributedString.Key: Any] = [.font: mono, .foregroundColor: greenHi, .kern: 1.0]
+        let tagW = (tag as NSString).size(withAttributes: tagAttrs).width
+        (tag as NSString).draw(at: NSPoint(x: size.width - 32 - tagW, y: size.height - 50), withAttributes: tagAttrs)
+
+        // Square plates behind the two icons, each with a light strip where Finder
+        // writes the icon's name (Finder always draws those names in dark text).
+        for c in [appIcon, appsIcon] {
+            let top = size.height - (c.y - 74), bottom = size.height - (c.y + 84)
+            let r = NSRect(x: c.x - 74, y: bottom, width: 148, height: top - bottom)
+            NSColor(white: 1, alpha: 0.03).setFill(); r.fill()
+            NSColor(white: 1, alpha: 0.12).setStroke()
+            let p = NSBezierPath(rect: r.insetBy(dx: 0.5, dy: 0.5)); p.lineWidth = 1; p.stroke()
+            let strip = NSRect(x: r.minX, y: size.height - (c.y + 84), width: r.width, height: 26)
+            NSColor(srgbRed: 0xED / 255, green: 0xED / 255, blue: 0xED / 255, alpha: 1).setFill(); strip.fill()
+        }
+
+        // The arrow: dashed shaft, solid square-ended head, in Agent2 green.
+        let y = size.height - appIcon.y
+        let x0 = appIcon.x + 92, x1 = appsIcon.x - 96
+        let shaft = NSBezierPath()
+        shaft.move(to: NSPoint(x: x0, y: y)); shaft.line(to: NSPoint(x: x1 - 6, y: y))
+        shaft.lineWidth = 4
+        shaft.setLineDash([10, 6], count: 2, phase: 0)
+        green.setStroke(); shaft.stroke()
+        let head = NSBezierPath()
+        head.move(to: NSPoint(x: x1 + 10, y: y))
+        head.line(to: NSPoint(x: x1 - 8, y: y + 13))
+        head.line(to: NSPoint(x: x1 - 8, y: y - 13))
+        head.close()
+        greenHi.setFill(); head.fill()
+
+        // Footer instruction.
+        let text = "DRAG AGENT2 INTO APPLICATIONS"
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .medium),
+                                                     .foregroundColor: NSColor.white, .kern: 1.6]
+        let tw = (text as NSString).size(withAttributes: attrs).width
+        (text as NSString).draw(at: NSPoint(x: (size.width - tw) / 2, y: 64), withAttributes: attrs)
+        let sub = "First launch: right-click Agent2 → Open"
+        let subAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11.5), .foregroundColor: muted]
+        let sw = (sub as NSString).size(withAttributes: subAttrs).width
+        (sub as NSString).draw(at: NSPoint(x: (size.width - sw) / 2, y: 40), withAttributes: subAttrs)
+
+        NSGraphicsContext.restoreGraphicsState()
+        return rep
+    }
+}

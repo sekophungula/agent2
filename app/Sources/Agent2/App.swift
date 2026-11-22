@@ -10,9 +10,18 @@ struct Agent2Main {
             catch { print("Export failed: \(error)"); exit(1) }
             exit(0)
         }
+        if let i = args.firstIndex(of: "--dmg-background"), i + 1 < args.count {
+            do { try DMGBackground.write(to: URL(fileURLWithPath: args[i + 1])); print("Wrote DMG background to \(args[i + 1])") }
+            catch { print("Failed: \(error)"); exit(1) }
+            exit(0)
+        }
         if let i = args.firstIndex(of: "--snapshot"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.snapshot(to: URL(fileURLWithPath: args[i + 1])) }
             exit(0)
+        }
+        if let i = args.firstIndex(of: "--ask-voice"), i + 1 < args.count {
+            MainActor.assumeIsolated { DevTools.ask(args[i + 1], spoken: true) }
+            RunLoop.main.run()
         }
         if let i = args.firstIndex(of: "--ask"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.ask(args[i + 1]) }
@@ -26,31 +35,28 @@ struct Agent2Main {
     }
 }
 
-/// Agent2 lives in the menu bar: one status item, one popover, one settings window.
+/// Agent2 lives in the notch on MacBooks that have one, otherwise in the menu bar.
+/// Holding ⌃⌥ is hands-free: no window opens, the notch (or menu bar icon) turns
+/// into a green pill, and the answer is spoken back. A quick tap opens the chat.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     static weak var shared: AppDelegate?
 
-    private var statusItem: NSStatusItem!
+    private var statusItem: NSStatusItem?
+    private var notchPanel: NotchPanel?
     private let popover = NSPopover()
     private var settingsWindow: NSWindow?
     private let hotkey = HotkeyMonitor()
     private let voice = VoiceInput()
+    private let indicator = IndicatorModel.shared
     private var heldVoice = false
+    private var placementInUse: Placement?
+    private var refreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
         AgentRegistry.shared.refresh()
         Task { await ComposioService.shared.refresh() }
-
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem.button {
-            button.image = PixelBird.menuBarImage(height: 17)
-            button.toolTip = "Agent2 — hold ⌃⌥ to talk"
-            button.target = self
-            button.action = #selector(statusItemClicked)
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        }
 
         popover.behavior = .transient
         popover.animates = true
@@ -61,11 +67,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             openHistory: { [weak self] in self?.openSettings(.history) },
             toggleMic: { [weak self] in self?.toggleMic() }))
 
+        indicator.start(voice: voice)
+        applyPlacement()
+        // Keep the notch or menu bar pill in step with what Agent2 is doing.
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refreshIndicator() }
+        }
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.placementInUse = nil; self?.applyPlacement() }
+        }
+
         hotkey.onPress = { [weak self] in self?.hotkeyDown() }
         hotkey.onRelease = { [weak self] held in self?.hotkeyUp(held: held) }
         applyHotkeySetting()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.applyHotkeySetting() }
+            Task { @MainActor in self?.applyHotkeySetting(); self?.applyPlacement() }
         }
 
         if !UserDefaults.standard.bool(forKey: "onboarded") {
@@ -83,17 +99,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         want ? hotkey.start() : hotkey.stop()
     }
 
-    // MARK: Menu bar
+    // MARK: Notch or menu bar
+
+    /// The placement that will actually be used on this Mac right now.
+    private var effectivePlacement: Placement {
+        switch AppSettings.shared.placement {
+        case .menuBar: return .menuBar
+        case .notch, .auto: return NotchGeometry.find() == nil ? .menuBar : .notch
+        }
+    }
+
+    private func applyPlacement() {
+        let want = effectivePlacement
+        guard want != placementInUse else { return }
+        placementInUse = want
+        popover.performClose(nil)
+        if want == .notch, let g = NotchGeometry.find() {
+            if let item = statusItem { NSStatusBar.system.removeStatusItem(item); statusItem = nil }
+            notchPanel?.orderOut(nil)
+            let panel = NotchPanel(geometry: g, model: indicator,
+                                   onClick: { [weak self] in self?.togglePopover() },
+                                   onRightClick: { [weak self] in self?.showMenu() })
+            panel.orderFrontRegardless()
+            notchPanel = panel
+        } else {
+            notchPanel?.orderOut(nil)
+            notchPanel = nil
+            if statusItem == nil {
+                let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+                item.button?.image = PixelBird.menuBarImage(height: 17)
+                item.button?.toolTip = "Agent2 — hold ⌃⌥ to talk"
+                item.button?.target = self
+                item.button?.action = #selector(statusItemClicked)
+                item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+                statusItem = item
+            }
+        }
+    }
+
+    private var lastPhase: IndicatorPhase = .idle
+    private func refreshIndicator() {
+        let phase = indicator.phase
+        if let panel = notchPanel, phase != lastPhase { panel.show(phase, animated: true) }
+        if let button = statusItem?.button, phase != .idle || lastPhase != .idle {
+            button.image = MenuBarPill.image(for: indicator)
+        }
+        lastPhase = phase
+    }
+
+    /// The view the chat popover hangs from: the notch, or the menu bar icon.
+    private var anchorView: NSView? { notchPanel?.clickView ?? statusItem?.button }
+
+    // MARK: Chat popover and menu
 
     @objc private func statusItemClicked() {
         if NSApp.currentEvent?.type == .rightMouseUp { showMenu(); return }
+        togglePopover()
+    }
+
+    private func togglePopover() {
+        if Speaker.shared.isSpeaking { Speaker.shared.stop(); return }   // a click hushes Agent2
         popover.isShown ? popover.performClose(nil) : showPopover()
     }
 
     func showPopover() {
-        guard let button = statusItem.button else { return }
+        guard let anchor = anchorView else { return }
         NSApp.activate(ignoringOtherApps: true)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
     }
 
@@ -101,6 +173,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Open Agent2", action: #selector(menuOpen), keyEquivalent: "").target = self
         menu.addItem(withTitle: "New conversation", action: #selector(menuNew), keyEquivalent: "n").target = self
+        if Speaker.shared.isSpeaking {
+            menu.addItem(withTitle: "Stop speaking", action: #selector(menuHush), keyEquivalent: "").target = self
+        }
         menu.addItem(.separator())
         let sourceItem = NSMenuItem(title: "Source: \(AgentRegistry.shared.source?.name ?? "none")", action: nil, keyEquivalent: "")
         let sub = NSMenu()
@@ -117,13 +192,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         menu.addItem(withTitle: "Open history folder", action: #selector(menuHistory), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Agent2", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
+        if let item = statusItem {
+            item.menu = menu
+            item.button?.performClick(nil)
+            item.menu = nil
+        } else if let anchor = anchorView {
+            menu.popUp(positioning: nil, at: NSPoint(x: anchor.bounds.midX - 60, y: -4), in: anchor)
+        }
     }
 
     @objc private func menuOpen() { showPopover() }
     @objc private func menuNew() { Orchestrator.shared.newConversation(); showPopover() }
+    @objc private func menuHush() { Speaker.shared.stop() }
     @objc private func menuSettings() { openSettings(.source) }
     @objc private func menuHistory() {
         try? FileManager.default.createDirectory(at: HistoryStore.folder, withIntermediateDirectories: true)
@@ -150,16 +230,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
-    // MARK: Voice
+    // MARK: Voice (hands-free)
 
     private func hotkeyDown() {
         heldVoice = true
+        Speaker.shared.stop()   // talking over Agent2 interrupts it, like a person
         Task {
             guard await voice.requestPermissions() else { showPopover(); return }
             // Only start once the keys have been held briefly, so a quick tap stays a tap.
             try? await Task.sleep(nanoseconds: 220_000_000)
             guard heldVoice else { return }
-            if !popover.isShown { showPopover() }
+            NSSound(named: "Tink")?.play()
             voice.start()
         }
     }
@@ -169,9 +250,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         Task {
             if voice.isListening {
                 let text = await voice.stop()
-                if !text.trimmingCharacters(in: .whitespaces).isEmpty { Orchestrator.shared.send(text) }
+                if !text.trimmingCharacters(in: .whitespaces).isEmpty {
+                    NSSound(named: "Pop")?.play()
+                    Orchestrator.shared.send(text, spoken: true)
+                }
             } else if held < 0.35 {
-                popover.isShown ? popover.performClose(nil) : showPopover()
+                togglePopover()
             }
         }
     }

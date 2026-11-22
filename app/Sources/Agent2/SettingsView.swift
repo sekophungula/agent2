@@ -412,11 +412,36 @@ private struct VoiceTab: View {
             .padding(.horizontal, 14).frame(height: 44)
         }
 
-        Card(title: "Speech") {
-            Toggle("Read replies aloud", isOn: $settings.speakReplies)
-            Text("Speech is transcribed on this Mac with Apple's speech recognition.").font(.system(size: 11.5)).foregroundStyle(Theme.muted)
+        Card(title: "Talking back") {
+            Toggle("Answer voice requests out loud", isOn: $settings.speakVoiceReplies)
+            Text("Hold ⌃⌥ and talk: no window opens, and Agent2 tells you what it did. Click the notch or the menu bar icon to stop it speaking.")
+                .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            Toggle("Also read replies to typed messages aloud", isOn: $settings.speakReplies)
+            Text("Your words are transcribed on this Mac. For a more natural voice, download a Premium voice in System Settings → Accessibility → Spoken Content.")
+                .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
         }
         .toggleStyle(SquareToggleStyle())
+
+        RuledList(title: "Where Agent2 lives", trailing: NotchGeometry.find() == nil ? "No notch on this Mac" : "This Mac has a notch") {
+            ForEach(Placement.allCases) { place in
+                let on = settings.placement == place
+                Rule()
+                Button { settings.placement = place } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Rectangle().stroke(on ? Theme.green : Theme.borderStrong)
+                            if on { Rectangle().fill(Theme.green).padding(3) }
+                        }.frame(width: 14, height: 14)
+                        Text(place.label).font(.system(size: 12.5))
+                        Spacer()
+                        if place == .auto { Tag(text: "Default") }
+                    }
+                    .padding(.horizontal, 14).frame(height: 38)
+                    .background(on ? Theme.greenWash : .clear)
+                    .contentShape(Rectangle())
+                }.buttonStyle(.plain)
+            }
+        }
     }
 
     private func key(_ s: String) -> some View {

@@ -126,3 +126,81 @@ final class VoiceInput: ObservableObject {
         request = nil
     }
 }
+
+/// Agent2's voice. Replies to voice requests are read aloud, like a person
+/// answering you, so you never need to look at a window.
+@MainActor
+final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+    static let shared = Speaker()
+    @Published private(set) var isSpeaking = false
+    private let synth = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        synth.delegate = self
+    }
+
+    func speak(_ text: String) {
+        let clean = Speaker.spoken(text)
+        guard !clean.isEmpty else { return }
+        synth.stopSpeaking(at: .immediate)
+        let u = AVSpeechUtterance(string: clean)
+        u.voice = Speaker.bestVoice
+        u.rate = AVSpeechUtteranceDefaultSpeechRate * 1.05
+        u.postUtteranceDelay = 0.05
+        isSpeaking = true
+        synth.speak(u)
+    }
+
+    func stop() {
+        synth.stopSpeaking(at: .immediate)
+        isSpeaking = false
+    }
+
+    nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish u: AVSpeechUtterance) {
+        Task { @MainActor in if !self.synth.isSpeaking { self.isSpeaking = false } }
+    }
+    nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didCancel u: AVSpeechUtterance) {
+        Task { @MainActor in self.isSpeaking = false }
+    }
+
+    /// The best installed voice for the person's language: Premium, then Enhanced, then default.
+    /// Better voices can be downloaded in System Settings → Accessibility → Spoken Content.
+    static var bestVoice: AVSpeechSynthesisVoice? {
+        let lang = Locale.preferredLanguages.first ?? "en-US"
+        let base = String(lang.prefix(2))
+        let voices = AVSpeechSynthesisVoice.speechVoices().filter {
+            $0.language.hasPrefix(base) && !$0.identifier.contains("speech.synthesis") // skip novelty voices
+        }
+        func rank(_ v: AVSpeechSynthesisVoice) -> Int {
+            (v.quality == .premium ? 300 : v.quality == .enhanced ? 200 : 100) + (v.language == lang ? 10 : 0)
+        }
+        return voices.max { rank($0) < rank($1) } ?? AVSpeechSynthesisVoice(language: lang)
+    }
+
+    /// Turns Markdown into something that sounds natural read aloud.
+    static func spoken(_ text: String) -> String {
+        var s = text
+        let rules: [(String, String)] = [
+            (#"```[\s\S]*?```"#, " "),                    // code blocks
+            (#"`([^`]*)`"#, "$1"),                         // inline code
+            (#"!?\[([^\]]*)\]\([^)]*\)"#, "$1"),           // links and images
+            (#"https?://\S+"#, "the link"),
+            (#"(?m)^\s{0,3}#{1,6}\s*"#, ""),               // headings
+            (#"(?m)^\s*[-*+]\s+"#, ""),                    // bullets
+            (#"(?m)^\s*\d+\.\s+"#, ""),                    // numbered lists
+            (#"(?m)^\s*\|.*\|\s*$"#, ""),                  // table rows
+            (#"[*_~>#|]"#, ""),
+            (#"\n{2,}"#, ". "),
+            (#"\s+"#, " "),
+        ]
+        for (pattern, template) in rules {
+            s = s.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
+        }
+        s = s.replacingOccurrences(of: "⚠️", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.count > 700, let cut = s.prefix(700).lastIndex(where: { ".!?".contains($0) }) {
+            s = String(s[...cut]) + " The rest is in the Agent2 window."
+        }
+        return s
+    }
+}
