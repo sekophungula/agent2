@@ -20,7 +20,7 @@ enum DevTools {
         ]
         render(ChatView(voice: voice, openSettings: {}, openHistory: {}, toggleMic: {}), "popover-chat", dir)
         o.conversation = Conversation()
-        for tab in [SettingsTab.source, .agents, .apps, .voice] {
+        for tab in [SettingsTab.source, .agents, .apps, .voice, .about] {
             render(SettingsView(tab: tab).frame(width: 820, height: 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
         }
         // Notch and menu bar pill in each state.

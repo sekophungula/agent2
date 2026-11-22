@@ -472,5 +472,46 @@ private struct AboutTab: View {
                 Button("GitHub") { NSWorkspace.shared.open(URL(string: "https://github.com/sekophungula/agent2")!) }.buttonStyle(SecondaryButtonStyle())
             }
         }
+
+        RuledList(title: "If macOS blocks Agent2", trailing: "Not notarised yet") {
+            Rule()
+            Text("Agent2 isn't notarised by Apple yet, so macOS may say “Agent2” Not Opened the first time, or after you install a new version. Allow it once:")
+                .font(.system(size: 12)).foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            ForEach(Array(Self.steps.enumerated()), id: \.offset) { i, step in
+                Rule()
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("\(i + 1)").font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.green)
+                        .frame(width: 20, height: 20)
+                        .overlay(Rectangle().stroke(Theme.green.opacity(0.6)))
+                    Text(.init(step)).font(.system(size: 12.5)).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+            }
+            Rule()
+            HStack(spacing: 8) {
+                Button("Open Privacy & Security") {
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension")!)
+                }.buttonStyle(AccentButtonStyle())
+                Button(copied ? "Copied" : "Copy Terminal fix") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString("xattr -dr com.apple.quarantine /Applications/Agent2.app", forType: .string)
+                    copied = true
+                }.buttonStyle(SecondaryButtonStyle())
+                Spacer()
+            }
+            .padding(14)
+        }
     }
+
+    @State private var copied = false
+    static let steps = [
+        "Click **Done** in the warning. Don't click Move to Bin.",
+        "Open **System Settings → Privacy & Security**.",
+        "Scroll down to **Security**, where it says “Agent2 was blocked to protect your Mac”.",
+        "Click **Open Anyway**, confirm with your password or Touch ID, then click **Open Anyway** again.",
+    ]
 }
