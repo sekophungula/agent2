@@ -120,7 +120,29 @@ SCRIPT = """
   </script>"""
 
 
+EXTERNAL_LINK = re.compile(r'<a\b([^>]*?)\bhref="(https?://[^"]+)"([^>]*)>')
+
+
+def external_links(doc: str) -> str:
+    """Links that leave agent2.shakatec.co.za open in a new tab.
+
+    Direct file downloads (.zip) are left alone: they start a download
+    without leaving the page, so a new tab would only flash open and close.
+    """
+    def fix(m):
+        before, href, after = m.groups()
+        attrs = before + after
+        if "agent2.shakatec.co.za" in href or href.endswith(".zip") or "target=" in attrs:
+            return m.group(0)
+        return f'<a{before}href="{href}"{after} target="_blank" rel="noopener noreferrer">'
+    return EXTERNAL_LINK.sub(fix, doc)
+
+
 def page(title, desc, active, body, url):
+    return external_links(_page(title, desc, active, body, url))
+
+
+def _page(title, desc, active, body, url):
     return f"""<!doctype html>
 <html lang="en">
 <head>
