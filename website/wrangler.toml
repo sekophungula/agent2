@@ -1,0 +1,10 @@
+name = "agent2-site"
+compatibility_date = "2026-11-01"
+
+[assets]
+directory = "./public"
+not_found_handling = "404-page"
+
+[[routes]]
+pattern = "agent2.shakatec.co.za"
+custom_domain = true

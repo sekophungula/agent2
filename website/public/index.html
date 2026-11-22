@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent2 — the middleman for your AI agents</title>
+  <meta name="description" content="Agent2 lives in your Mac's menu bar and gets Claude Code, Codex, Gemini and your API keys working together. Hold Control+Option and talk. Your history stays yours, in Markdown." />
+  <meta property="og:title" content="Agent2 — the middleman for your AI agents" />
+  <meta property="og:description" content="One menu-bar app that routes work across Claude Code, Codex, Gemini and your connected apps." />
+  <meta property="og:image" content="https://agent2.shakatec.co.za/assets/og.png" />
+  <meta name="theme-color" content="#0A0C0A" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" width="22" height="26" /><span>Agent2</span></a>
+      <nav class="links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#apps">Apps</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/sekophungula/agent2">GitHub</a>
+      </nav>
+      <a class="btn btn-primary btn-sm" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">Download</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="grid-bg" aria-hidden="true"></div>
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <a class="eyebrow" href="https://github.com/sekophungula/agent2"><span class="dot"></span>Open source · macOS 14+ · v0.1</a>
+          <h1>The middleman for your <span class="hl">AI agents</span>.</h1>
+          <p class="lead">Agent2 lives in your menu bar and gets the agents you already pay for — Claude Code, Codex, Gemini, your API keys — working together on one job. Hold <kbd>⌃</kbd>&thinsp;<kbd>⌥</kbd> and talk.</p>
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 1.43c0 1.14-.47 2.23-1.2 3.02-.79.86-2.07 1.52-3.12 1.44-.13-1.1.42-2.27 1.14-3.03.81-.86 2.18-1.5 3.18-1.43zM20.5 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.5-4.12 3.52-1.54.01-1.93-1-4.02-.99-2.09.01-2.52 1.01-4.06 1-1.73-.02-3.05-1.77-4.04-3.33C-.04 15.9-.33 10.79 1.47 8.06c1.28-1.94 3.3-3.08 5.2-3.08 1.93 0 3.15 1.06 4.75 1.06 1.55 0 2.5-1.06 4.73-1.06 1.69 0 3.48.92 4.75 2.5-4.17 2.29-3.5 8.24-.4 9.62z"/></svg>
+              Download for macOS
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/sekophungula/agent2">View on GitHub →</a>
+          </div>
+          <p class="fine">Free. Bring your own subscription or API key. Nothing routes through our servers.</p>
+        </div>
+        <div class="hero-shot">
+          <div class="menubar">
+            <span class="mb-apple"></span><span>Finder</span><span>File</span><span>Edit</span>
+            <span class="mb-right"><img src="/assets/logo.svg" alt="" class="mb-bird" /><span class="mb-time">17:42</span></span>
+          </div>
+          <img class="shot" src="/assets/popover-chat.png" alt="The Agent2 popover: Claude Code delegates tests to Codex and reports back." width="440" height="580" />
+        </div>
+      </div>
+    </section>
+
+    <section class="strip">
+      <div class="wrap">
+        <p class="strip-label">Works with the agents already on your Mac</p>
+        <ul class="chips">
+          <li>Claude Code</li><li>Codex CLI</li><li>Gemini CLI</li><li>Cursor Agent</li><li>OpenCode</li><li>Anthropic API</li><li>OpenAI API</li><li>Claude &amp; ChatGPT desktop</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="how" class="section">
+      <div class="wrap">
+        <p class="kicker">// how it works</p>
+        <h2>You talk. One agent thinks. The right agents do the work.</h2>
+        <div class="steps">
+          <article class="step">
+            <span class="num">01</span>
+            <h3>Pick your source</h3>
+            <p>Agent2 scans your Mac for agent CLIs, API keys and desktop apps. You choose which one is the brain — and only you ever change it.</p>
+          </article>
+          <article class="step">
+            <span class="num">02</span>
+            <h3>Hold ⌃⌥ and ask</h3>
+            <p>Speak from any app. Speech is transcribed on-device and sent to your source agent along with your recent conversation.</p>
+          </article>
+          <article class="step">
+            <span class="num">03</span>
+            <h3>It delegates in parallel</h3>
+            <p>The source hands self-contained briefs to the agents best suited — Codex for tests, Gemini for a 900-page PDF — then merges the results.</p>
+          </article>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span></span><span></span><span></span><em>what the source agent writes</em></div>
+<pre><code><span class="c"># Claude Code (your source) decides to split the job</span>
+I'll review the README myself and have Codex write the tests.
+
+<span class="t">&lt;delegate</span> <span class="a">agent</span>=<span class="s">"codex"</span><span class="t">&gt;</span>Add unit tests for src/parser.ts covering empty
+input and nested blocks. Run them and report the results.<span class="t">&lt;/delegate&gt;</span>
+
+<span class="c"># Agent2 runs Codex, feeds the result back, and saves it all to</span>
+<span class="c"># ~/Agent2/History/2026-11/2026-11-22 1742 add-tests.md</span></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section alt">
+      <div class="wrap">
+        <p class="kicker">// features</p>
+        <h2>Small app. Leverage over every agent you have.</h2>
+        <div class="features">
+          <article class="feature">
+            <div class="ico">◧</div>
+            <h3>Lives in the menu bar</h3>
+            <p>No Dock icon, no notch takeover. A pixel bird up top, one click or one shortcut away.</p>
+          </article>
+          <article class="feature">
+            <div class="ico">⌃⌥</div>
+            <h3>Push-to-talk anywhere</h3>
+            <p>Hold Control + Option, speak, let go. A quick tap opens the chat for typing instead.</p>
+          </article>
+          <article class="feature">
+            <div class="ico">⇶</div>
+            <h3>Real delegation</h3>
+            <p>The source agent fans work out to Claude Code, Codex, Gemini, Cursor or an API model — in parallel — and combines it.</p>
+          </article>
+          <article class="feature">
+            <div class="ico">.md</div>
+            <h3>History you own</h3>
+            <p>Every conversation is a Markdown file in a folder you choose. Switch from Claude Code to Codex, or code to cowork, and nothing is lost.</p>
+          </article>
+          <article class="feature">
+            <div class="ico">⎔</div>
+            <h3>Detached by design</h3>
+            <p>Agent2 isn't tied to any vendor or session. Change your source in Settings whenever you like; your context comes with you.</p>
+          </article>
+          <article class="feature">
+            <div class="ico">⚿</div>
+            <h3>Your keys, your Mac</h3>
+            <p>Uses your Claude or ChatGPT subscription through their own CLIs, or API keys stored in the macOS Keychain. No Agent2 servers.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="apps" class="section">
+      <div class="wrap split">
+        <div>
+          <p class="kicker">// apps, powered by composio</p>
+          <h2>Link your socials and tools once. Every agent can use them.</h2>
+          <p class="lead small">Agent2 brings in <a href="https://composio.dev">Composio</a> so Gmail, Slack, GitHub, Notion, Linear, X, LinkedIn, Instagram, Calendar and hundreds more are one click away. Already have Composio in Claude Code or Codex? Agent2 spots it and uses what you have.</p>
+          <ul class="ticks">
+            <li>OAuth handled by Composio — Agent2 never sees your passwords</li>
+            <li>One switch adds Composio to Claude Code and Codex</li>
+            <li>Agents show you a draft before anything is sent or posted</li>
+          </ul>
+        </div>
+        <div class="panel-shot"><img src="/assets/settings-apps.png" alt="Agent2 settings: linking apps through Composio." loading="lazy" /></div>
+      </div>
+    </section>
+
+    <section class="section alt">
+      <div class="wrap split reverse">
+        <div class="panel-shot"><img src="/assets/settings-source.png" alt="Agent2 settings: choosing the source agent." loading="lazy" /></div>
+        <div>
+          <p class="kicker">// you stay in charge</p>
+          <h2>The source is yours to pick. Agent2 never switches it.</h2>
+          <p class="lead small">Use Claude Code on Monday and Codex on Tuesday. Agent2 keeps the same Markdown history and hands the recent conversation to whichever agent you've chosen, so it picks up where the last one left off.</p>
+          <ul class="ticks">
+            <li>Autonomy levels: read-only, edit workspace, or full access</li>
+            <li>Toggle which agents the source may delegate to</li>
+            <li>Desktop apps (Claude, ChatGPT) supported as hand-off targets</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <div class="wrap faq">
+        <p class="kicker">// faq</p>
+        <h2>Questions</h2>
+        <details><summary>Do I need an API key?</summary><p>No. If you have Claude Code or Codex installed and signed in with your Claude or ChatGPT plan, Agent2 uses those. API keys are optional and stay in your Keychain.</p></details>
+        <details><summary>Where is my history stored?</summary><p>In <code>~/Agent2/History</code> by default, one Markdown file per conversation grouped by month. You can move the folder in Settings → History.</p></details>
+        <details><summary>Why does it ask for Accessibility access?</summary><p>macOS only lets an app hear a global shortcut like Control + Option held in other apps when it has Accessibility access. Agent2 uses it for the shortcut and nothing else.</p></details>
+        <details><summary>Is my voice sent anywhere?</summary><p>Speech is transcribed by Apple's on-device recogniser where your Mac supports it. Only the resulting text goes to the agent you chose.</p></details>
+        <details><summary>The app says it's from an unidentified developer.</summary><p>The first builds are ad-hoc signed. Right-click Agent2.app → Open, then confirm once. Or build it yourself from the GitHub repo with <code>./scripts/build-app.sh</code>.</p></details>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap final-inner">
+        <img src="/assets/logo-green.svg" alt="" width="56" height="66" />
+        <h2>Stop juggling agents. Let them work together.</h2>
+        <div class="cta center">
+          <a class="btn btn-primary" href="https://github.com/sekophungula/agent2/releases/latest/download/Agent2-macOS.zip">Download Agent2</a>
+          <a class="btn btn-ghost" href="https://github.com/sekophungula/agent2">Star on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap foot-inner">
+      <span class="brand small"><img src="/assets/logo-green.svg" alt="" width="16" height="19" />Agent2</span>
+      <span class="muted">MIT licensed · Built by <a href="https://shakatec.co.za">Shakatec</a></span>
+      <span class="muted mono">#548A47</span>
+    </div>
+  </footer>
+</body>
+</html>
