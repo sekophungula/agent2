@@ -99,7 +99,7 @@ kbd { display: inline-block; min-width: 26px; padding: 2px 6px; border: 1px soli
 .log .cur { display: inline-block; width: 8px; height: 14px; background: var(--green-hi); vertical-align: -2px; animation: blink 1s steps(2) infinite; }
 .menubar-strip { display: flex; align-items: center; gap: 18px; height: 28px; padding: 0 14px; border-top: 1px solid var(--line); font: 500 12px/1 var(--sans); color: var(--muted); background: var(--bg); }
 .menubar-strip .r { margin-left: auto; display: flex; gap: 16px; align-items: center; }
-.menubar-strip .bird { width: 14px; height: 16px; filter: invert(1); opacity: .95; outline: 1px solid var(--green); outline-offset: 4px; }
+.menubar-strip .bird { width: 14px; height: 16px; }
 
 /* Agents grid */
 .cells { display: grid; grid-template-columns: repeat(4, 1fr); }
