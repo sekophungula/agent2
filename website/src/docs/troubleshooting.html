@@ -8,8 +8,17 @@
 <li>If you replaced the app with a new version, remove Agent2 from System Settings → Privacy &amp; Security → Accessibility and add it again.</li>
 <li>Make sure the shortcut is enabled in the same panel.</li>
 </ul>
-<h2>“Agent2 is from an unidentified developer”</h2>
-<p>Right-click Agent2.app → <b>Open</b> → <b>Open</b>. You only need to do this once.</p>
+<h2>“Agent2” Not Opened</h2>
+<p>Agent2 isn't notarised by Apple yet, so macOS blocks the first launch. It isn't malware, and you only need to allow it once:</p>
+<ol>
+<li>Click <b>Done</b> in the warning. Don't click Move to Bin.</li>
+<li>Open <b>System Settings</b> and go to <b>Privacy &amp; Security</b>.</li>
+<li>Scroll down to the <b>Security</b> section. You'll see “Agent2 was blocked to protect your Mac.”</li>
+<li>Click <b>Open Anyway</b>, confirm with your password or Touch ID, then click <b>Open Anyway</b> in the next dialog.</li>
+</ol>
+<p>The Open Anyway button only shows for about an hour after the warning. If it's gone, open Agent2 again to bring it back.</p>
+<p>Comfortable in Terminal? This does the same thing:</p>
+<pre><code>xattr -dr com.apple.quarantine /Applications/Agent2.app</code></pre>
 <h2>Composio says it isn't installed</h2>
 <p>Install the CLI from the <a href="https://docs.composio.dev/docs/cli">Composio docs</a>, then click <b>Refresh</b> in Settings → Apps.</p>
 <h2>Still stuck?</h2>

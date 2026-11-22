@@ -194,7 +194,7 @@ enum DMGBackground {
                                                      .foregroundColor: ink, .kern: 1.6]
         let tw = (text as NSString).size(withAttributes: attrs).width
         (text as NSString).draw(at: NSPoint(x: (size.width - tw) / 2, y: 50), withAttributes: attrs)
-        let sub = "First launch: right-click Agent2 → Open"
+        let sub = "Blocked on first launch? System Settings → Privacy & Security → Open Anyway"
         let subAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11.5), .foregroundColor: muted]
         let sw = (sub as NSString).size(withAttributes: subAttrs).width
         (sub as NSString).draw(at: NSPoint(x: (size.width - sw) / 2, y: 28), withAttributes: subAttrs)

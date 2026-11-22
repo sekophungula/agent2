@@ -29,7 +29,7 @@ Agent2 doesn't do the heavy lifting itself. You pick one agent as the **source**
 ## Install
 
 1. Download `Agent2.dmg` from [Releases](https://github.com/sekophungula/agent2/releases/latest), open it and drag Agent2 onto Applications.
-2. The build is ad-hoc signed, so the first time, right-click → **Open** → **Open**.
+2. Open Agent2. The build isn't notarised yet, so the first time macOS says **“Agent2” Not Opened**. Click **Done**, then go to **System Settings → Privacy & Security**, scroll to **Security** and click **Open Anyway** next to Agent2. You only do this once.
 3. Grant **Accessibility** (for the ⌃⌥ shortcut), **Microphone** and **Speech Recognition** when asked.
 4. Have at least one agent ready:
    - Claude Code: `npm i -g @anthropic-ai/claude-code`, then run `claude` once and sign in

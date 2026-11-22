@@ -57,8 +57,17 @@
 <li>If you replaced the app with a new version, remove Agent2 from System Settings → Privacy &amp; Security → Accessibility and add it again.</li>
 <li>Make sure the shortcut is enabled in the same panel.</li>
 </ul>
-<h2 id="agent2-is-from-an-unidentified-developer">“Agent2 is from an unidentified developer”</h2>
-<p>Right-click Agent2.app → <b>Open</b> → <b>Open</b>. You only need to do this once.</p>
+<h2 id="agent2-not-opened">“Agent2” Not Opened</h2>
+<p>Agent2 isn't notarised by Apple yet, so macOS blocks the first launch. It isn't malware, and you only need to allow it once:</p>
+<ol>
+<li>Click <b>Done</b> in the warning. Don't click Move to Bin.</li>
+<li>Open <b>System Settings</b> and go to <b>Privacy &amp; Security</b>.</li>
+<li>Scroll down to the <b>Security</b> section. You'll see “Agent2 was blocked to protect your Mac.”</li>
+<li>Click <b>Open Anyway</b>, confirm with your password or Touch ID, then click <b>Open Anyway</b> in the next dialog.</li>
+</ol>
+<p>The Open Anyway button only shows for about an hour after the warning. If it's gone, open Agent2 again to bring it back.</p>
+<p>Comfortable in Terminal? This does the same thing:</p>
+<pre><code>xattr -dr com.apple.quarantine /Applications/Agent2.app</code></pre>
 <h2 id="composio-says-it-isn-t-installed">Composio says it isn't installed</h2>
 <p>Install the CLI from the <a href="https://docs.composio.dev/docs/cli" target="_blank" rel="noopener noreferrer">Composio docs</a>, then click <b>Refresh</b> in Settings → Apps.</p>
 <h2 id="still-stuck">Still stuck?</h2>
@@ -67,7 +76,7 @@
       <div class="pn-row"><a class="pn" href="/docs/voice/"><span class="label">← Previous</span>Voice & hotkey</a><a class="pn next" href="/docs/build-from-source/"><span class="label">Next →</span>Build from source</a></div>
       <a class="edit" href="https://github.com/sekophungula/agent2/edit/main/website/src/docs/troubleshooting.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub →</a>
     </article>
-    <aside class="docs-toc"><span class="label">On this page</span><a href="#claude-code-isn-t-signed-in">“Claude Code isn't signed in”</a><a href="#an-agent-isn-t-detected">An agent isn't detected</a><a href="#does-nothing">⌃⌥ does nothing</a><a href="#agent2-is-from-an-unidentified-developer">“Agent2 is from an unidentified developer”</a><a href="#composio-says-it-isn-t-installed">Composio says it isn't installed</a><a href="#still-stuck">Still stuck?</a></aside>
+    <aside class="docs-toc"><span class="label">On this page</span><a href="#claude-code-isn-t-signed-in">“Claude Code isn't signed in”</a><a href="#an-agent-isn-t-detected">An agent isn't detected</a><a href="#does-nothing">⌃⌥ does nothing</a><a href="#agent2-not-opened">“Agent2” Not Opened</a><a href="#composio-says-it-isn-t-installed">Composio says it isn't installed</a><a href="#still-stuck">Still stuck?</a></aside>
   </main>
 
   <footer class="footer">
