@@ -156,6 +156,7 @@ def _page(title, desc, active, body, url):
   <meta property="og:image" content="https://agent2.shakatec.co.za/assets/og.png" />
   <meta property="og:url" content="https://agent2.shakatec.co.za/{url}" />
   <meta name="theme-color" content="#0b0b0b" />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
