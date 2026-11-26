@@ -58,6 +58,7 @@ final class AppSettings: ObservableObject {
         }
     }
     @Published var kokoroVoice: String { didSet { d.set(kokoroVoice, forKey: "kokoroVoice") } }
+    @Published var autoUpdateCheck: Bool { didSet { d.set(autoUpdateCheck, forKey: "autoUpdateCheck") } }
     @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
@@ -79,6 +80,7 @@ final class AppSettings: ObservableObject {
         speakVoiceReplies = d.object(forKey: "speakVoiceReplies") as? Bool ?? true
         voiceEngine = VoiceEngine(rawValue: d.string(forKey: "voiceEngine") ?? "") ?? .kokoro
         kokoroVoice = d.string(forKey: "kokoroVoice") ?? Kokoro.voices[0].id
+        autoUpdateCheck = d.object(forKey: "autoUpdateCheck") as? Bool ?? true
         placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12

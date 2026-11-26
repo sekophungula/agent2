@@ -17,7 +17,7 @@ OUT = ROOT / "public"
 
 REPO = "https://github.com/sekophungula/agent2"
 DMG = f"{REPO}/releases/latest/download/Agent2.dmg"
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 
 # (path, source fragment, nav key, title, description)
 PAGES = [

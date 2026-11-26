@@ -5,6 +5,7 @@ struct ChatView: View {
     @ObservedObject var orchestrator = Orchestrator.shared
     @ObservedObject var registry = AgentRegistry.shared
     @ObservedObject var settings = AppSettings.shared
+    @ObservedObject var updater = Updater.shared
     @ObservedObject var voice: VoiceInput
     var openSettings: () -> Void
     var openHistory: () -> Void
@@ -17,6 +18,7 @@ struct ChatView: View {
         VStack(spacing: 0) {
             header
             Rule()
+            if let banner = updateBanner { banner; Rule() }
             sourceBar
             Rule()
             messages
@@ -43,6 +45,32 @@ struct ChatView: View {
         }
         .padding(.leading, 14).padding(.trailing, 8).frame(height: 44)
         .background(Theme.panel)
+    }
+
+    /// A strip under the header while an update is available or installing.
+    private var updateBanner: AnyView? {
+        let text: String, button: AnyView?
+        switch updater.state {
+        case .available(let r):
+            text = "v\(r.version) is available"
+            button = AnyView(Button("Update") { Task { await updater.install(r) } }.buttonStyle(AccentButtonStyle()))
+        case .downloading(let p):
+            text = "Downloading update · \(Int(p * 100))%"; button = AnyView(ProgressView().controlSize(.small))
+        case .installing:
+            text = "Installing · Agent2 will reopen"; button = AnyView(ProgressView().controlSize(.small))
+        default:
+            return nil
+        }
+        return AnyView(
+            HStack(spacing: 10) {
+                Rectangle().fill(Theme.green).frame(width: 7, height: 7)
+                Text(text).font(Theme.mono).foregroundStyle(Theme.text)
+                Spacer()
+                button
+            }
+            .padding(.horizontal, 14).frame(height: 40)
+            .background(Theme.greenWash)
+        )
     }
 
     private func iconButton(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {

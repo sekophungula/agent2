@@ -20,6 +20,10 @@ enum DevTools {
         ]
         render(ChatView(voice: voice, openSettings: {}, openHistory: {}, toggleMic: {}), "popover-chat", dir)
         o.conversation = Conversation()
+        Updater.shared.preview(.available(.init(version: "0.1.6",
+            notes: "**A natural voice, on your Mac.**\n\n- Agent2 now speaks with Kokoro, run on your Mac.\n- Replies start in about half a second.",
+            zip: URL(string: "https://example.com")!, page: URL(string: "https://example.com")!)))
+        render(ChatView(voice: voice, openSettings: {}, openHistory: {}, toggleMic: {}), "popover-update", dir)
         for tab in [SettingsTab.source, .agents, .apps, .voice, .about] {
             render(SettingsView(tab: tab).frame(width: 820, height: tab == .voice ? 1080 : 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
         }
@@ -103,6 +107,26 @@ enum DevTools {
             try? await Task.sleep(for: .milliseconds(300))
             while sp.isSpeaking { try? await Task.sleep(for: .milliseconds(100)) }
             print(String(format: "Done in %.1fs", Date().timeIntervalSince(t1)))
+            exit(0)
+        }
+    }
+
+    /// `Agent2 --check-update`: asks GitHub for the latest release and prints the result.
+    static func checkUpdate() {
+        Task { @MainActor in
+            await Updater.shared.check()
+            print("Running v\(Updater.currentVersion) from \(Updater.appURL.path): \(Updater.shared.state)")
+            exit(0)
+        }
+    }
+
+    /// `Agent2 --update-from <zip> <version> [--relaunch]`: installs a local build over this copy.
+    static func updateFrom(zip: String, version: String, relaunch: Bool) {
+        let r = Updater.Release(version: version, notes: "", zip: URL(fileURLWithPath: zip),
+                                page: URL(string: "https://github.com/\(Updater.repo)/releases")!)
+        Task { @MainActor in
+            await Updater.shared.install(r, relaunch: relaunch)
+            print("Result: \(Updater.shared.state)")
             exit(0)
         }
     }

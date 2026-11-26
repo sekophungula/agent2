@@ -23,6 +23,14 @@ struct Agent2Main {
             MainActor.assumeIsolated { DevTools.ask(args[i + 1], spoken: true) }
             RunLoop.main.run()
         }
+        if args.contains("--check-update") {
+            MainActor.assumeIsolated { DevTools.checkUpdate() }
+            RunLoop.main.run()
+        }
+        if let i = args.firstIndex(of: "--update-from"), i + 2 < args.count {
+            MainActor.assumeIsolated { DevTools.updateFrom(zip: args[i + 1], version: args[i + 2], relaunch: args.contains("--relaunch")) }
+            RunLoop.main.run()
+        }
         if let i = args.firstIndex(of: "--say"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.say(args[i + 1]) }
             RunLoop.main.run()
@@ -88,6 +96,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.applyHotkeySetting(); self?.applyPlacement() }
         }
+
+        Updater.shared.startAutomaticChecks()
+        // Just updated? macOS ties Accessibility to the exact build, so the ⌃⌥
+        // shortcut may need allowing again: take the person straight there.
+        let d = UserDefaults.standard
+        if let last = d.string(forKey: "lastRunVersion"), last != Updater.currentVersion,
+           AppSettings.shared.hotkeyEnabled, !HotkeyMonitor.ensureAccessibility(prompt: false) {
+            openSettings(.voice)
+        }
+        d.set(Updater.currentVersion, forKey: "lastRunVersion")
 
         if !UserDefaults.standard.bool(forKey: "onboarded") {
             UserDefaults.standard.set(true, forKey: "onboarded")
@@ -194,6 +212,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         sourceItem.submenu = sub
         menu.addItem(sourceItem)
         menu.addItem(withTitle: "Settings…", action: #selector(menuSettings), keyEquivalent: ",").target = self
+        if let r = Updater.shared.available {
+            menu.addItem(withTitle: "Update to v\(r.version)…", action: #selector(menuUpdate), keyEquivalent: "").target = self
+        } else {
+            menu.addItem(withTitle: "Check for updates…", action: #selector(menuCheckUpdates), keyEquivalent: "").target = self
+        }
         menu.addItem(withTitle: "Open history folder", action: #selector(menuHistory), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Agent2", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -210,6 +233,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     @objc private func menuNew() { Orchestrator.shared.newConversation(); showPopover() }
     @objc private func menuHush() { Speaker.shared.stop() }
     @objc private func menuSettings() { openSettings(.source) }
+    @objc private func menuUpdate() { openSettings(.about) }
+    @objc private func menuCheckUpdates() {
+        openSettings(.about)
+        Task { await Updater.shared.check() }
+    }
     @objc private func menuHistory() {
         try? FileManager.default.createDirectory(at: HistoryStore.folder, withIntermediateDirectories: true)
         NSWorkspace.shared.open(HistoryStore.folder)

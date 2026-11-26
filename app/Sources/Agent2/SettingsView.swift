@@ -542,6 +542,8 @@ private struct AboutTab: View {
             }
         }
 
+        UpdatesCard()
+
         RuledList(title: "If macOS blocks Agent2", trailing: "Not notarised yet") {
             Rule()
             Text("Agent2 isn't notarised by Apple yet, so macOS may say “Agent2” Not Opened the first time, or after you install a new version. Allow it once:")
@@ -583,4 +585,81 @@ private struct AboutTab: View {
         "Scroll down to **Security**, where it says “Agent2 was blocked to protect your Mac”.",
         "Click **Open Anyway**, confirm with your password or Touch ID, then click **Open Anyway** again.",
     ]
+}
+
+/// Settings → About → Updates.
+private struct UpdatesCard: View {
+    @ObservedObject var updater = Updater.shared
+    @ObservedObject var settings = AppSettings.shared
+
+    var body: some View {
+        Card(title: "Updates", trailing: AnyView(statusTag)) {
+            HStack(spacing: 8) {
+                Text(headline).font(.system(size: 12.5, weight: .medium))
+                Spacer()
+                action
+            }
+            if case .downloading(let p) = updater.state {
+                ProgressView(value: p).tint(Theme.green)
+            }
+            if let r = updater.available, !r.notes.isEmpty {
+                Text(Self.summary(r.notes))
+                    .font(.system(size: 11.5)).foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Full release notes") { NSWorkspace.shared.open(r.page) }.buttonStyle(.link).font(.system(size: 11.5))
+            }
+            Toggle("Check for updates automatically", isOn: $settings.autoUpdateCheck)
+            Text(footnote).font(.system(size: 11.5)).foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .toggleStyle(SquareToggleStyle())
+    }
+
+    private var headline: String {
+        switch updater.state {
+        case .idle: return "You have v\(Updater.currentVersion)"
+        case .checking: return "Checking GitHub for a newer version…"
+        case .upToDate: return "Agent2 v\(Updater.currentVersion) is the latest version"
+        case .available(let r): return "Agent2 v\(r.version) is available (you have v\(Updater.currentVersion))"
+        case .downloading(let p): return "Downloading v\(updater.available?.version ?? "")… \(Int(p * 100))%"
+        case .installing: return "Installing. Agent2 will quit and reopen."
+        case .failed(let why): return why
+        }
+    }
+
+    @ViewBuilder private var action: some View {
+        switch updater.state {
+        case .available(let r):
+            Button("Update now") { Task { await updater.install(r) } }.buttonStyle(AccentButtonStyle())
+        case .checking, .downloading, .installing:
+            ProgressView().controlSize(.small)
+        default:
+            Button("Check now") { Task { await updater.check() } }.buttonStyle(SecondaryButtonStyle())
+                .disabled(Updater.currentVersion == "dev")
+        }
+    }
+
+    @ViewBuilder private var statusTag: some View {
+        switch updater.state {
+        case .available: Tag(text: "Update", tone: .run)
+        case .upToDate: Tag(text: "✓ Latest", tone: .ok)
+        case .failed: Tag(text: "Error", tone: .warn)
+        default: Tag(text: "v\(Updater.currentVersion)")
+        }
+    }
+
+    private var footnote: String {
+        var s = "Updates come from Agent2's GitHub releases. Your settings, history and voice stay as they are."
+        if !Updater.canReplaceInPlace { s += " Move Agent2 to Applications to install updates from here." }
+        if let d = updater.lastChecked { s += " Last checked \(d.formatted(date: .omitted, time: .shortened))." }
+        return s
+    }
+
+    /// The release notes as plain text, first few lines only.
+    static func summary(_ notes: String) -> String {
+        let lines = notes.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !$0.lowercased().hasPrefix("**install") }
+            .map { $0.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: #"\[([^\]]*)\]\([^)]*\)"#, with: "$1", options: .regularExpression) }
+        return lines.prefix(4).joined(separator: "\n")
+    }
 }

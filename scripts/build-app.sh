@@ -2,7 +2,7 @@
 # Builds Agent2.app (universal) into dist/, plus a .dmg (and a .zip) for GitHub Releases.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${VERSION:-0.1.4}"
+VERSION="${VERSION:-0.1.5}"
 BUILD="${BUILD:-1}"
 DIST="$ROOT/dist"
 APP="$DIST/Agent2.app"
@@ -44,8 +44,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Ad-hoc signature (no Apple Developer ID). Set SIGN_ID to sign properly.
+# Releases are signed with the self-signed "Agent2 Code Signing (Shakatec)" certificate
+# when it's in the keychain, so macOS keeps Accessibility and other permissions across
+# updates (an ad-hoc signature changes with every build). Builds without it are ad-hoc.
+# Not a Developer ID: Gatekeeper still asks once ("Open Anyway").
+AGENT2_CERT="32F85530436C518C3575B88F6B6A7B1781B3F69D"
+if [ -z "${SIGN_ID:-}" ] && security find-identity -p codesigning | grep -q "$AGENT2_CERT"; then SIGN_ID="$AGENT2_CERT"; fi
 codesign --force --deep --sign "${SIGN_ID:--}" "$APP"
+codesign -dr - "$APP" 2>&1 | grep designated
 
 (cd "$DIST" && rm -f Agent2-macOS.zip && ditto -c -k --keepParent Agent2.app Agent2-macOS.zip)
 
