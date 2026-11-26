@@ -23,6 +23,10 @@ struct Agent2Main {
             MainActor.assumeIsolated { DevTools.ask(args[i + 1], spoken: true) }
             RunLoop.main.run()
         }
+        if let i = args.firstIndex(of: "--say"), i + 1 < args.count {
+            MainActor.assumeIsolated { DevTools.say(args[i + 1]) }
+            RunLoop.main.run()
+        }
         if let i = args.firstIndex(of: "--ask"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.ask(args[i + 1]) }
             RunLoop.main.run()
@@ -68,6 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             toggleMic: { [weak self] in self?.toggleMic() }))
 
         indicator.start(voice: voice)
+        Kokoro.shared.loadIfInstalled()
         applyPlacement()
         // Keep the notch or menu bar pill in step with what Agent2 is doing.
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { [weak self] _ in

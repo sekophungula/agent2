@@ -21,7 +21,7 @@ enum DevTools {
         render(ChatView(voice: voice, openSettings: {}, openHistory: {}, toggleMic: {}), "popover-chat", dir)
         o.conversation = Conversation()
         for tab in [SettingsTab.source, .agents, .apps, .voice, .about] {
-            render(SettingsView(tab: tab).frame(width: 820, height: 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
+            render(SettingsView(tab: tab).frame(width: 820, height: tab == .voice ? 1080 : 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
         }
         // Notch and menu bar pill in each state.
         let m = IndicatorModel.shared
@@ -76,6 +76,33 @@ enum DevTools {
             if spoken, let last = o.conversation.turns.last { print("\nWould say: \(Speaker.spoken(last.text))") }
             print("\nSaved to: \(o.conversation.fileURL?.path ?? "-")")
             AppSettings.shared.speakVoiceReplies = wasSpeaking
+            exit(0)
+        }
+    }
+
+    /// `Agent2 --say "text"`: loads Kokoro (downloading it if needed), speaks the
+    /// text and prints how long the model took to load and the voice took to start.
+    static func say(_ text: String) {
+        let k = Kokoro.shared
+        let t0 = Date()
+        k.prepare()
+        Task { @MainActor in
+            while k.state == .downloading { try? await Task.sleep(for: .milliseconds(100)) }
+            print(String(format: "Kokoro: %@ after %.1fs, %.0f MB on disk", "\(k.state)", Date().timeIntervalSince(t0),
+                         Double(Kokoro.diskSize()) / 1_000_000))
+            guard k.isReady else { exit(1) }
+            let t1 = Date()
+            let first = try? await k.synthesize(KokoroPlayer.sentences(text).first ?? text, voice: AppSettings.shared.kokoroVoice)
+            print(String(format: "First sentence generated in %.2fs (%.1fs of audio)", Date().timeIntervalSince(t1),
+                         Double(first?.count ?? 0) / 24_000))
+            let t2 = Date()
+            _ = try? await k.synthesize(KokoroPlayer.sentences(text).first ?? text, voice: AppSettings.shared.kokoroVoice)
+            print(String(format: "Same sentence again (warm): %.2fs", Date().timeIntervalSince(t2)))
+            let sp = Speaker.shared
+            sp.speak(text)
+            try? await Task.sleep(for: .milliseconds(300))
+            while sp.isSpeaking { try? await Task.sleep(for: .milliseconds(100)) }
+            print(String(format: "Done in %.1fs", Date().timeIntervalSince(t1)))
             exit(0)
         }
     }

@@ -19,6 +19,7 @@ Agent2 doesn't do the heavy lifting itself. You pick one agent as the **source**
 
 - **Menu bar, not the notch.** A pixel bird in the menu bar. Click it, or hold ⌃⌥ anywhere.
 - **Push-to-talk.** Hold Control + Option, speak, let go. Transcribed on-device with Apple Speech. A quick tap opens the chat for typing.
+- **Talks back, naturally.** Replies are spoken by [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), an open-source voice model run on your Mac by [FluidAudio](https://github.com/FluidInference/FluidAudio). One-time 180 MB download, no cloud.
 - **Finds your agents.** Detects Claude Code, Codex CLI, Gemini CLI, Cursor Agent and OpenCode on your PATH, Anthropic/OpenAI API keys, and the Claude and ChatGPT desktop apps.
 - **Real delegation.** The source writes `<delegate agent="codex">…</delegate>` (CLI agents) or calls a `delegate` tool (API agents). Agent2 runs those agents in parallel and returns the results.
 - **History you own.** One Markdown file per conversation in `~/Agent2/History/YYYY-MM/`. It isn't stored in any one agent, so switching from Claude Code to Codex, or between sessions, keeps your context.
@@ -81,7 +82,8 @@ cd app && swift build
 | `app/Sources/Agent2/Orchestrator.swift` | The middleman: system prompt, delegation loop, tools for API agents |
 | `app/Sources/Agent2/History.swift` | Markdown history: save, load, search |
 | `app/Sources/Agent2/Composio.swift` | Composio CLI: sign in, link apps, add to agents, search/execute tools |
-| `app/Sources/Agent2/Voice.swift` | ⌃⌥ push-to-talk and on-device speech recognition |
+| `app/Sources/Agent2/Voice.swift` | ⌃⌥ push-to-talk, on-device speech recognition, and the speaker |
+| `app/Sources/Agent2/Kokoro.swift` | Kokoro voice: download, loading, sentence-by-sentence playback |
 | `app/Sources/Agent2/PixelBird.swift` | The logo, drawn from one pixel grid for the menu bar, icon and website |
 | `website/` | agent2.shakatec.co.za: home, docs, integrations, changelog and download pages. Edit `website/src/`, then run `python3 website/build.py` |
 

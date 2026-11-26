@@ -18,4 +18,13 @@
 <p>On MacBooks with a notch, Agent2 sits in the notch: a bird on one side, a green square on the other when it's ready. On other Macs it's a bird in the menu bar. Either way, it grows into a green pill while it listens (<b>Listening</b>), works (<b>Working</b>) and talks (<b>Speaking</b>). Change this in Settings → Voice &amp; hotkey → <b>Where Agent2 lives</b>.</p>
 <h2>Talking back</h2>
 <p>Voice requests are answered out loud, in a sentence or two about what was done. Agent2 isn't trying to replace your agents' own apps: there are no tables or long explanations, and long results are saved as files in your workspace. Everything is still saved in your <a href="/docs/history/">history</a>.</p>
-<p>Turn <b>Answer voice requests out loud</b> off if you'd rather read. <b>Also read replies to typed messages aloud</b> does the same for typing. For a more natural voice, download a Premium voice in System Settings → Accessibility → Spoken Content; Agent2 picks the best installed voice for your language.</p>
+<p>Turn <b>Answer voice requests out loud</b> off if you'd rather read. <b>Also read replies to typed messages aloud</b> does the same for typing.</p>
+<h2>The voice</h2>
+<p>Agent2 speaks with <a href="https://huggingface.co/hexgrad/Kokoro-82M">Kokoro</a>, a small open-source voice model (Apache 2.0), run on your Mac by <a href="https://github.com/FluidInference/FluidAudio">FluidAudio</a>. Nothing you hear is generated in the cloud.</p>
+<ul>
+<li><b>Download.</b> The model is about 180 MB and downloads once, the first time Agent2 answers out loud or when you click <b>Download</b> in Settings → Voice &amp; hotkey → Voice. Until then, Agent2 uses the macOS voice.</li>
+<li><b>Speed.</b> Agent2 speaks the first sentence while it prepares the rest, so replies start in about half a second on Apple Silicon. Intel Macs work too, more slowly.</li>
+<li><b>Speakers.</b> Choose Heart, Bella, Michael, Adam (American) or Emma, George (British), and click <b>Preview</b> to hear one.</li>
+<li><b>Storage.</b> The model lives in <code>~/Library/Application Support/Agent2/Voice</code>. <b>Remove</b> in Settings deletes it.</li>
+</ul>
+<p>Prefer Apple's voices? Choose <b>macOS voice</b>. Agent2 then uses the best voice installed for your language; Premium voices from System Settings → Accessibility → Spoken Content sound best.</p>

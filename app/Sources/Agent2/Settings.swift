@@ -16,6 +16,11 @@ enum Autonomy: String, CaseIterable, Identifiable, Codable {
 }
 
 /// Where Agent2 shows itself.
+enum VoiceEngine: String, CaseIterable, Identifiable {
+    case kokoro, system
+    var id: String { rawValue }
+}
+
 enum Placement: String, CaseIterable, Identifiable {
     case auto, notch, menuBar
     var id: String { rawValue }
@@ -46,6 +51,13 @@ final class AppSettings: ObservableObject {
     /// Read replies to *typed* messages aloud too (voice requests are always answered out loud).
     @Published var speakReplies: Bool { didSet { d.set(speakReplies, forKey: "speakReplies") } }
     @Published var speakVoiceReplies: Bool { didSet { d.set(speakVoiceReplies, forKey: "speakVoiceReplies") } }
+    @Published var voiceEngine: VoiceEngine {
+        didSet {
+            d.set(voiceEngine.rawValue, forKey: "voiceEngine")
+            if voiceEngine == .kokoro { Task { @MainActor in Kokoro.shared.prepare() } }
+        }
+    }
+    @Published var kokoroVoice: String { didSet { d.set(kokoroVoice, forKey: "kokoroVoice") } }
     @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
@@ -65,6 +77,8 @@ final class AppSettings: ObservableObject {
         openAIModel = d.string(forKey: "openAIModel") ?? "gpt-6.1-sol"
         speakReplies = d.object(forKey: "speakReplies") as? Bool ?? false
         speakVoiceReplies = d.object(forKey: "speakVoiceReplies") as? Bool ?? true
+        voiceEngine = VoiceEngine(rawValue: d.string(forKey: "voiceEngine") ?? "") ?? .kokoro
+        kokoroVoice = d.string(forKey: "kokoroVoice") ?? Kokoro.voices[0].id
         placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12

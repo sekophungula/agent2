@@ -134,16 +134,34 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     static let shared = Speaker()
     @Published private(set) var isSpeaking = false
     private let synth = AVSpeechSynthesizer()
+    private let kokoro = KokoroPlayer()
+    private var speakTask: Task<Void, Never>?
 
     override init() {
         super.init()
         synth.delegate = self
+        kokoro.onFinish = { [weak self] in self?.isSpeaking = false }
     }
 
+    /// Reads `text` aloud with Kokoro when it's installed and chosen, otherwise the macOS voice.
     func speak(_ text: String) {
         let clean = Speaker.spoken(text)
         guard !clean.isEmpty else { return }
-        synth.stopSpeaking(at: .immediate)
+        stop()
+        isSpeaking = true
+        let settings = AppSettings.shared
+        // First spoken reply with Kokoro chosen: fetch it in the background and use
+        // the macOS voice until it's ready.
+        if settings.voiceEngine == .kokoro, Kokoro.shared.state == .notInstalled { Kokoro.shared.prepare() }
+        guard settings.voiceEngine == .kokoro, Kokoro.shared.isReady else { return speakSystem(clean) }
+        let voice = settings.kokoroVoice
+        speakTask = Task { [weak self] in
+            do { try await self?.kokoro.speak(clean, voice: voice) }
+            catch { if !Task.isCancelled { self?.speakSystem(clean) } }
+        }
+    }
+
+    private func speakSystem(_ clean: String) {
         let u = AVSpeechUtterance(string: clean)
         u.voice = Speaker.bestVoice
         u.rate = AVSpeechUtteranceDefaultSpeechRate * 1.05
@@ -153,6 +171,8 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func stop() {
+        speakTask?.cancel(); speakTask = nil
+        kokoro.stop()
         synth.stopSpeaking(at: .immediate)
         isSpeaking = false
     }

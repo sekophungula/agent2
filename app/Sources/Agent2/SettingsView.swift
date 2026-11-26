@@ -385,6 +385,7 @@ private struct HistoryTab: View {
 
 private struct VoiceTab: View {
     @ObservedObject var settings = AppSettings.shared
+    @ObservedObject var kokoro = Kokoro.shared
     @State private var trusted = HotkeyMonitor.ensureAccessibility(prompt: false)
     var body: some View {
         Card(title: "Push-to-talk") {
@@ -417,10 +418,32 @@ private struct VoiceTab: View {
             Text("Hold ⌃⌥ and talk: no window opens, and Agent2 tells you what it did. Click the notch or the menu bar icon to stop it speaking.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             Toggle("Also read replies to typed messages aloud", isOn: $settings.speakReplies)
-            Text("Your words are transcribed on this Mac. For a more natural voice, download a Premium voice in System Settings → Accessibility → Spoken Content.")
+            Text("Your words are transcribed on this Mac, and the Kokoro voice runs on it too.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
         }
         .toggleStyle(SquareToggleStyle())
+
+        RuledList(title: "Voice", trailing: "What Agent2 sounds like") {
+            engineRow(.kokoro, "Kokoro", "Natural voice that runs on this Mac. One-time 180 MB download.") { kokoroStatus }
+            engineRow(.system, "macOS voice", "Built in. Uses the best voice installed in System Settings.") { EmptyView() }
+            if settings.voiceEngine == .kokoro {
+                Rule()
+                HStack(spacing: 10) {
+                    Text("Speaker").font(.system(size: 12.5))
+                    Picker("", selection: $settings.kokoroVoice) {
+                        ForEach(Kokoro.voices, id: \.id) { Text($0.name).tag($0.id) }
+                    }
+                    .labelsHidden().frame(width: 210)
+                    Spacer()
+                    Button("Preview") {
+                        Speaker.shared.speak("Hi, I'm Agent2. When you ask me for something, this is how I'll tell you what I did.")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(!kokoro.isReady)
+                }
+                .padding(.horizontal, 14).frame(height: 46)
+            }
+        }
 
         RuledList(title: "Where Agent2 lives", trailing: NotchGeometry.find() == nil ? "No notch on this Mac" : "This Mac has a notch") {
             ForEach(Placement.allCases) { place in
@@ -441,6 +464,52 @@ private struct VoiceTab: View {
                     .contentShape(Rectangle())
                 }.buttonStyle(.plain)
             }
+        }
+    }
+
+    @ViewBuilder private var kokoroStatus: some View {
+        switch kokoro.state {
+        case .ready:
+            HStack(spacing: 8) {
+                Tag(text: "✓ Ready", tone: .ok)
+                Button("Remove") { kokoro.remove() }.buttonStyle(SecondaryButtonStyle())
+            }
+        case .downloading:
+            HStack(spacing: 8) { ProgressView().controlSize(.small); Tag(text: "Downloading", tone: .run) }
+        case .notInstalled:
+            Button("Download") { kokoro.prepare() }.buttonStyle(PrimaryButtonStyle())
+        case .failed(let why):
+            HStack(spacing: 8) {
+                Tag(text: "Failed", tone: .warn).help(why)
+                Button("Retry") { kokoro.prepare() }.buttonStyle(SecondaryButtonStyle())
+            }
+        }
+    }
+
+    private func engineRow<T: View>(_ engine: VoiceEngine, _ title: String, _ detail: String,
+                                    @ViewBuilder trailing: () -> T) -> some View {
+        let on = settings.voiceEngine == engine
+        return VStack(spacing: 0) {
+            Rule()
+            HStack(spacing: 12) {
+                Button { settings.voiceEngine = engine } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Rectangle().stroke(on ? Theme.green : Theme.borderStrong)
+                            if on { Rectangle().fill(Theme.green).padding(3) }
+                        }.frame(width: 14, height: 14)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title).font(.system(size: 12.5, weight: .medium))
+                            Text(detail).font(.system(size: 11.5)).foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                trailing()
+            }
+            .padding(.horizontal, 14).frame(height: 54)
+            .background(on ? Theme.greenWash : .clear)
         }
     }
 
