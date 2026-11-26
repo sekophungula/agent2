@@ -176,4 +176,18 @@ enum DevTools {
         Speaker.shared.stop()
         for (n, line) in said.enumerated() { print("\(n + 1). \(line)") }
     }
+
+    /// `Agent2 --handsfree-test`: starts a hands-free conversation for 25 seconds and
+    /// prints when speech starts and ends and what was heard (nothing is sent to an agent).
+    static func handsFreeTest() {
+        let t0 = Date()
+        HandsFree.trace = { print(String(format: "%5.1fs  %@", Date().timeIntervalSince(t0), $0)) }
+        Task { @MainActor in
+            await HandsFree.shared.begin()
+            print("listening: \(HandsFree.shared.isOn)  \(HandsFree.shared.problem ?? "")")
+            try? await Task.sleep(for: .seconds(25))
+            HandsFree.shared.end()
+            exit(0)
+        }
+    }
 }

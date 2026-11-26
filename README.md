@@ -20,6 +20,8 @@ Agent2 doesn't do the heavy lifting itself. You pick one agent as the **source**
 - **Menu bar, not the notch.** A pixel bird in the menu bar. Click it, or hold ⌃⌥ anywhere.
 - **Push-to-talk.** Hold Control + Option, speak, let go. Transcribed on-device with Apple Speech. A quick tap opens the chat for typing.
 - **Updates itself.** From 0.1.5, Agent2 checks GitHub Releases and installs new versions in one click, signed with Agent2's own certificate so permissions survive updates.
+- **Hands-free or push-to-talk.** Hold ⌃⌥, or switch to a hands-free conversation where Agent2 hears when you pause (Silero VAD via FluidAudio, on device).
+- **Screen control.** With [Cua Driver](https://github.com/trycua/cua) installed, your agent can open apps, click, type and point on your Mac.
 - **Talks back, naturally.** Replies are spoken by [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), an open-source voice model run on your Mac by [FluidAudio](https://github.com/FluidInference/FluidAudio). One-time 180 MB download, no cloud.
 - **Finds your agents.** Detects Claude Code, Codex CLI, Gemini CLI, Cursor Agent and OpenCode on your PATH, Anthropic/OpenAI API keys, and the Claude and ChatGPT desktop apps.
 - **Real delegation.** The source writes `<delegate agent="codex">…</delegate>` (CLI agents) or calls a `delegate` tool (API agents). Agent2 runs those agents in parallel and returns the results.
@@ -85,6 +87,8 @@ cd app && swift build
 | `app/Sources/Agent2/Composio.swift` | Composio CLI: sign in, link apps, add to agents, search/execute tools |
 | `app/Sources/Agent2/Voice.swift` | ⌃⌥ push-to-talk, on-device speech recognition, and the speaker |
 | `app/Sources/Agent2/Updater.swift` | In-app updates from GitHub Releases: check, download, verify signature, swap, relaunch |
+| `app/Sources/Agent2/HandsFree.swift` | Hands-free conversation: voice activity detection, turn-taking |
+| `app/Sources/Agent2/ScreenControl.swift` | Cua Driver as an MCP server for the source agent |
 | `app/Sources/Agent2/Kokoro.swift` | Kokoro voice: download, loading, sentence-by-sentence playback |
 | `app/Sources/Agent2/PixelBird.swift` | The logo, drawn from one pixel grid for the menu bar, icon and website |
 | `website/` | agent2.shakatec.co.za: home, docs, integrations, changelog and download pages. Edit `website/src/`, then run `python3 website/build.py` |

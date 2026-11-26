@@ -168,7 +168,7 @@ final class Orchestrator: ObservableObject {
             p += """
 
 
-            This reply will be read aloud by text-to-speech. Write plain spoken sentences only: no Markdown, emoji, symbols or URLs, and don't read out file paths (say "the file in your workspace" instead).
+            Everything you write is read aloud by text-to-speech as you write it, including text between tool calls. So never think out loud or write notes to yourself ("Simplest: AppleScript", "Let me check the docs"). Only write sentences meant for the person: a short heads-up before a long job is fine ("Opening Notes now"), then the result. Write plain spoken sentences only: no Markdown, emoji, symbols or URLs, and don't read out file paths (say "the file in your workspace" instead).
             """
         }
         p += """

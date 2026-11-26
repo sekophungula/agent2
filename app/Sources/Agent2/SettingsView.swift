@@ -388,6 +388,7 @@ private struct HistoryTab: View {
 private struct VoiceTab: View {
     @ObservedObject var settings = AppSettings.shared
     @ObservedObject var kokoro = Kokoro.shared
+    @ObservedObject var handsFree = HandsFree.shared
     @State private var trusted = HotkeyMonitor.ensureAccessibility(prompt: false)
     var body: some View {
         Card(title: "Push-to-talk") {
@@ -399,6 +400,37 @@ private struct VoiceTab: View {
             Text("A quick tap opens Agent2 for typing instead.").font(.system(size: 11.5)).foregroundStyle(Theme.muted)
         }
         .toggleStyle(SquareToggleStyle())
+
+        RuledList(title: "How you talk", trailing: handsFree.isOn ? "Conversation on" : "") {
+            ForEach(ListenMode.allCases) { mode in
+                let on = settings.listenMode == mode
+                Rule()
+                Button { settings.listenMode = mode } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Rectangle().stroke(on ? Theme.green : Theme.borderStrong)
+                            if on { Rectangle().fill(Theme.green).padding(3) }
+                        }.frame(width: 14, height: 14)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(mode.label).font(.system(size: 12.5, weight: .medium))
+                            Text(mode.detail).font(.system(size: 11.5)).foregroundStyle(Theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                        if mode == .hold { Tag(text: "Default") }
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .background(on ? Theme.greenWash : .clear)
+                    .contentShape(Rectangle())
+                }.buttonStyle(.plain)
+            }
+            if settings.listenMode == .handsFree {
+                Rule()
+                Text("Agent2 doesn't listen while it's talking, so it never hears itself through your speakers. Tap ⌃⌥ or click the pill to cut it in. Speech detection runs on this Mac (Silero, via FluidAudio).")
+                    .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                    .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
 
         RuledList(title: "Permissions") {
             Rule()

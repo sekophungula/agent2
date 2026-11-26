@@ -16,6 +16,18 @@ enum Autonomy: String, CaseIterable, Identifiable, Codable {
 }
 
 /// Where Agent2 shows itself.
+/// How you talk to Agent2.
+enum ListenMode: String, CaseIterable, Identifiable {
+    case hold, handsFree
+    var id: String { rawValue }
+    var label: String { self == .hold ? "Hold ⌃⌥ while you talk" : "Hands-free conversation" }
+    var detail: String {
+        self == .hold
+            ? "Hold Control+Option, speak, let go. Nothing listens until you press."
+            : "Tap ⌃⌥ to start talking back and forth; Agent2 hears when you pause. Tap again, say \u{201C}goodbye\u{201D} or stay quiet for a minute to end."
+    }
+}
+
 enum VoiceEngine: String, CaseIterable, Identifiable {
     case kokoro, system
     var id: String { rawValue }
@@ -61,6 +73,12 @@ final class AppSettings: ObservableObject {
     @Published var autoUpdateCheck: Bool { didSet { d.set(autoUpdateCheck, forKey: "autoUpdateCheck") } }
     @Published var fastReplies: Bool { didSet { d.set(fastReplies, forKey: "fastReplies") } }
     @Published var screenControl: Bool { didSet { d.set(screenControl, forKey: "screenControl") } }
+    @Published var listenMode: ListenMode {
+        didSet {
+            d.set(listenMode.rawValue, forKey: "listenMode")
+            if listenMode == .hold { Task { @MainActor in HandsFree.shared.end() } }
+        }
+    }
     @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
@@ -92,6 +110,7 @@ final class AppSettings: ObservableObject {
         fastReplies = d.object(forKey: "fastReplies") as? Bool ?? true
         // On by default once Cua Driver is installed: installing it is the opt-in.
         screenControl = d.object(forKey: "screenControl") as? Bool ?? true
+        listenMode = ListenMode(rawValue: d.string(forKey: "listenMode") ?? "") ?? .hold
         placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12

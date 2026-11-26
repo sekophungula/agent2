@@ -36,16 +36,21 @@ final class IndicatorModel: ObservableObject {
     }
 
     private func update() {
-        let listening = voice?.isListening ?? false
+        let conversation = HandsFree.shared
         let speaking = Speaker.shared.isSpeaking
         let working = Orchestrator.shared.isWorking
-        let next: IndicatorPhase = listening ? .listening : speaking ? .speaking : working ? .thinking : .idle
+        // In a hands-free conversation the pill stays open: listening whenever Agent2 isn't busy.
+        let listening = (voice?.isListening ?? false) || (conversation.isOn && !speaking && !working)
+        let next: IndicatorPhase = (voice?.isListening ?? false) ? .listening
+            : speaking ? .speaking : working ? .thinking : listening ? .listening : .idle
         if next != phase { phase = next }
         ready = AgentRegistry.shared.source != nil
         guard phase != .idle else { if level != 0 { level = 0 }; return }
         tick &+= 1
         switch phase {
-        case .listening: level = level * 0.5 + CGFloat(voice?.level ?? 0) * 0.5
+        case .listening:
+            let input = HandsFree.shared.isOn ? HandsFree.shared.level : (voice?.level ?? 0)
+            level = level * 0.5 + CGFloat(input) * 0.5
         case .speaking: level = 0.35 + 0.45 * abs(sin(Double(tick) * 0.9)) * CGFloat.random(in: 0.6...1)
         default: level = 0
         }

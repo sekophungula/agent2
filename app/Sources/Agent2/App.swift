@@ -35,6 +35,10 @@ struct Agent2Main {
             MainActor.assumeIsolated { DevTools.streamTest() }
             exit(0)
         }
+        if args.contains("--handsfree-test") {
+            MainActor.assumeIsolated { DevTools.handsFreeTest() }
+            RunLoop.main.run()
+        }
         if let i = args.firstIndex(of: "--talk"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.talk(args[i + 1]) }
             RunLoop.main.run()
@@ -274,6 +278,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     // MARK: Voice (hands-free)
 
     private func hotkeyDown() {
+        // Hands-free: a tap cuts Agent2 off if it's talking, otherwise starts or ends the conversation.
+        if AppSettings.shared.listenMode == .handsFree {
+            if Speaker.shared.isSpeaking { Speaker.shared.stop() } else { HandsFree.shared.toggle() }
+            return
+        }
         heldVoice = true
         Speaker.shared.stop()   // talking over Agent2 interrupts it, like a person
         Task {
@@ -287,6 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func hotkeyUp(held: TimeInterval) {
+        if AppSettings.shared.listenMode == .handsFree { return }
         heldVoice = false
         Task {
             if voice.isListening {
