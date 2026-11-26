@@ -60,6 +60,7 @@ final class AppSettings: ObservableObject {
     @Published var kokoroVoice: String { didSet { d.set(kokoroVoice, forKey: "kokoroVoice") } }
     @Published var autoUpdateCheck: Bool { didSet { d.set(autoUpdateCheck, forKey: "autoUpdateCheck") } }
     @Published var fastReplies: Bool { didSet { d.set(fastReplies, forKey: "fastReplies") } }
+    @Published var screenControl: Bool { didSet { d.set(screenControl, forKey: "screenControl") } }
     @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
@@ -89,6 +90,8 @@ final class AppSettings: ObservableObject {
         kokoroVoice = d.string(forKey: "kokoroVoice") ?? Kokoro.voices[0].id
         autoUpdateCheck = d.object(forKey: "autoUpdateCheck") as? Bool ?? true
         fastReplies = d.object(forKey: "fastReplies") as? Bool ?? true
+        // On by default once Cua Driver is installed: installing it is the opt-in.
+        screenControl = d.object(forKey: "screenControl") as? Bool ?? true
         placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12

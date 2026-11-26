@@ -1,0 +1,28 @@
+<p>With screen control on, your source agent can see and use the apps on your Mac: open them, click, type, scroll and point at things. You watch its cursor move while it works, and Agent2 tells you out loud what it did.</p>
+<p>Agent2 does this with <a href="https://github.com/trycua/cua">Cua Driver</a>, an open-source tool (MIT) from Cua that runs on your Mac. It doesn't call any AI model itself: your own Claude Code or Codex does the thinking, so there's no extra account or cost.</p>
+<h2>Set it up</h2>
+<ol>
+<li>Install Cua Driver once, in Terminal:
+<pre><code>/bin/bash -c "$(curl -fsSL https://cua.ai/driver/install.sh)" -- --no-connect</code></pre>
+<code>--no-connect</code> leaves your Claude Code, Codex and Cursor settings alone; Agent2 attaches Cua Driver itself, only for its own requests.</li>
+<li>In Agent2, open Settings → Agents → <b>Screen control</b> and click <b>Grant</b>. Turn on <b>Cua Driver</b> under <b>Accessibility</b> and <b>Screen Recording</b> in System Settings.</li>
+<li>Make sure <b>Let the source agent use the mouse and keyboard</b> is ticked. It's on by default once Cua Driver is installed.</li>
+</ol>
+<p>Screen control works when the source is <b>Claude Code</b> or <b>Codex</b>.</p>
+<h2>Things to ask</h2>
+<table>
+<thead><tr><th>You say</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td>“Open Notes and start a shopping list with milk and eggs.”</td><td>Your agent opens Notes, makes the note and types the list.</td></tr>
+<tr><td>“Show me where the Wi-Fi settings are.”</td><td>It opens System Settings and moves its cursor to Wi-Fi, without clicking.</td></tr>
+<tr><td>“What's in the window I have open?”</td><td>It reads the window and tells you.</td></tr>
+</tbody>
+</table>
+<h2>Safety</h2>
+<ul>
+<li>Agent2 tells the agent never to type passwords, payment details or one-time codes, and to ask you before sending, buying, posting or deleting anything.</li>
+<li>Cua Driver runs in its standard mode, which refuses macOS security prompts such as password sheets.</li>
+<li>Turn screen control off any time in Settings → Agents. To remove Cua Driver completely:
+<pre><code>/bin/bash -c "$(curl -fsSL https://cua.ai/driver/uninstall.sh)"</code></pre></li>
+<li>Cua Driver sends Cua anonymous usage statistics by default (no prompts, screen contents or file paths). Turn that off with <code>cua-driver telemetry disable</code>.</li>
+</ul>

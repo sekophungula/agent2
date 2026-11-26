@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Screen control — Agent2 Docs</title>
+  <meta name="description" content="Let your agent use the mouse and keyboard." />
+  <meta property="og:title" content="Screen control — Agent2 Docs" />
+  <meta property="og:description" content="Let your agent use the mouse and keyboard." />
+  <meta property="og:image" content="https://agent2.shakatec.co.za/assets/og.png" />
+  <meta property="og:url" content="https://agent2.shakatec.co.za/docs/screen-control/" />
+  <meta name="theme-color" content="#0b0b0b" />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a>
+      <nav class="links">
+        <a href="/docs/" class="on">Docs</a>
+        <a href="/integrations/">Integrations</a>
+        <a href="/changelog/">Changelog</a>
+        <a href="/download/">Download</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-line btn-sm gh" href="https://github.com/sekophungula/agent2" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span data-stars>GitHub</span></a>
+        <a class="btn btn-white btn-sm" href="/download/"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 13.5h11"/></svg>Download</a>
+        <button class="menu-btn" aria-label="Menu" aria-expanded="false" data-menu>☰</button>
+      </div>
+    </div>
+    <nav class="mobile-links" data-mobile>
+      <a href="/docs/">Docs</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a><a href="/download/">Download</a><a href="https://github.com/sekophungula/agent2" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="docs">
+    <aside class="docs-side">
+      <input class="docs-search" type="search" placeholder="Search docs" aria-label="Search docs" data-docsearch />
+      <nav class="docs-nav"><span class="label">Start here</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/first-request/">Your first request</a><span class="label">Concepts</span><a href="/docs/source/">The source agent</a><a href="/docs/delegation/">Delegation</a><a href="/docs/history/">History</a><a href="/docs/autonomy/">Autonomy</a><span class="label">Agents</span><a href="/docs/supported-agents/">Supported agents</a><a href="/docs/api-keys/">API keys</a><span class="label">Apps</span><a href="/docs/composio/">Composio apps</a><span class="label">Using Agent2</span><a href="/docs/voice/">Voice & hotkey</a><a href="/docs/screen-control/" class="on">Screen control</a><a href="/docs/troubleshooting/">Troubleshooting</a><a href="/docs/build-from-source/">Build from source</a></nav>
+    </aside>
+    <article class="docs-body">
+      <span class="label g">// Using Agent2</span>
+      <h1>Screen control</h1>
+      <p class="docs-lead">Let your agent use the mouse and keyboard.</p>
+      <div class="prose"><p>With screen control on, your source agent can see and use the apps on your Mac: open them, click, type, scroll and point at things. You watch its cursor move while it works, and Agent2 tells you out loud what it did.</p>
+<p>Agent2 does this with <a href="https://github.com/trycua/cua" target="_blank" rel="noopener noreferrer">Cua Driver</a>, an open-source tool (MIT) from Cua that runs on your Mac. It doesn't call any AI model itself: your own Claude Code or Codex does the thinking, so there's no extra account or cost.</p>
+<h2 id="set-it-up">Set it up</h2>
+<ol>
+<li>Install Cua Driver once, in Terminal:
+<pre><code>/bin/bash -c "$(curl -fsSL https://cua.ai/driver/install.sh)" -- --no-connect</code></pre>
+<code>--no-connect</code> leaves your Claude Code, Codex and Cursor settings alone; Agent2 attaches Cua Driver itself, only for its own requests.</li>
+<li>In Agent2, open Settings → Agents → <b>Screen control</b> and click <b>Grant</b>. Turn on <b>Cua Driver</b> under <b>Accessibility</b> and <b>Screen Recording</b> in System Settings.</li>
+<li>Make sure <b>Let the source agent use the mouse and keyboard</b> is ticked. It's on by default once Cua Driver is installed.</li>
+</ol>
+<p>Screen control works when the source is <b>Claude Code</b> or <b>Codex</b>.</p>
+<h2 id="things-to-ask">Things to ask</h2>
+<table>
+<thead><tr><th>You say</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td>“Open Notes and start a shopping list with milk and eggs.”</td><td>Your agent opens Notes, makes the note and types the list.</td></tr>
+<tr><td>“Show me where the Wi-Fi settings are.”</td><td>It opens System Settings and moves its cursor to Wi-Fi, without clicking.</td></tr>
+<tr><td>“What's in the window I have open?”</td><td>It reads the window and tells you.</td></tr>
+</tbody>
+</table>
+<h2 id="safety">Safety</h2>
+<ul>
+<li>Agent2 tells the agent never to type passwords, payment details or one-time codes, and to ask you before sending, buying, posting or deleting anything.</li>
+<li>Cua Driver runs in its standard mode, which refuses macOS security prompts such as password sheets.</li>
+<li>Turn screen control off any time in Settings → Agents. To remove Cua Driver completely:
+<pre><code>/bin/bash -c "$(curl -fsSL https://cua.ai/driver/uninstall.sh)"</code></pre></li>
+<li>Cua Driver sends Cua anonymous usage statistics by default (no prompts, screen contents or file paths). Turn that off with <code>cua-driver telemetry disable</code>.</li>
+</ul>
+</div>
+      <div class="pn-row"><a class="pn" href="/docs/voice/"><span class="label">← Previous</span>Voice & hotkey</a><a class="pn next" href="/docs/troubleshooting/"><span class="label">Next →</span>Troubleshooting</a></div>
+      <a class="edit" href="https://github.com/sekophungula/agent2/edit/main/website/src/docs/screen-control.html" target="_blank" rel="noopener noreferrer">Edit this page on GitHub →</a>
+    </article>
+    <aside class="docs-toc"><span class="label">On this page</span><a href="#set-it-up">Set it up</a><a href="#things-to-ask">Things to ask</a><a href="#safety">Safety</a></aside>
+  </main>
+
+  <footer class="footer">
+    <div class="frame">
+      <div class="foot">
+        <div><a class="brand" href="/"><img src="/assets/logo-green.svg" alt="" />Agent2</a><p>The middleman for your AI agents. A macOS menu-bar app.</p></div>
+        <div><span class="label">Product</span><a href="/download/">Download</a><a href="/integrations/">Integrations</a><a href="/changelog/">Changelog</a></div>
+        <div><span class="label">Docs</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/troubleshooting/">Troubleshooting</a></div>
+        <div><span class="label">Source</span><a href="https://github.com/sekophungula/agent2" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/sekophungula/agent2/releases" target="_blank" rel="noopener noreferrer">Releases</a><a href="https://github.com/sekophungula/agent2/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></div>
+      </div>
+      <div class="legal"><span>© 2026 <a href="https://shakatec.co.za" target="_blank" rel="noopener noreferrer">Shakatec</a></span><span class="sw">v0.1.6</span></div>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var b = document.querySelector('[data-menu]'), m = document.querySelector('[data-mobile]');
+    if (b && m) b.addEventListener('click', function () { var o = m.classList.toggle('open'); b.setAttribute('aria-expanded', o); });
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var t = btn.closest('.cmd').querySelector('code').innerText;
+        navigator.clipboard.writeText(t).then(function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); });
+      });
+    });
+    document.querySelectorAll('[data-tabs]').forEach(function (root) {
+      var tabs = root.querySelectorAll('[data-tab]'), panes = root.querySelectorAll('[data-pane]');
+      tabs.forEach(function (t) { t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.toggle('on', x === t); x.setAttribute('aria-selected', x === t); });
+        panes.forEach(function (p) { p.hidden = p.dataset.pane !== t.dataset.tab; });
+      }); });
+    });
+    var q = document.querySelector('[data-docsearch]');
+    if (q) q.addEventListener('input', function () {
+      var v = q.value.toLowerCase();
+      document.querySelectorAll('.docs-nav a').forEach(function (a) { a.hidden = v && a.textContent.toLowerCase().indexOf(v) < 0; });
+    });
+    var s = document.querySelector('[data-stars]');
+    if (s) fetch('https://api.github.com/repos/sekophungula/agent2').then(function (r) { return r.json(); })
+      .then(function (d) { if (d.stargazers_count > 0) s.textContent = d.stargazers_count.toLocaleString(); }).catch(function () {});
+  })();
+  </script>
+</body>
+</html>

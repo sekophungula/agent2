@@ -44,6 +44,7 @@ DOCS = [
     ("Agents", "api-keys", "API keys", "Using Anthropic or OpenAI keys."),
     ("Apps", "composio", "Composio apps", "Link Gmail, Slack, GitHub and more."),
     ("Using Agent2", "voice", "Voice & hotkey", "Push-to-talk with ⌃ Control + ⌥ Option."),
+    ("Using Agent2", "screen-control", "Screen control", "Let your agent use the mouse and keyboard."),
     ("Using Agent2", "troubleshooting", "Troubleshooting", "Fixes for common problems."),
     ("Using Agent2", "build-from-source", "Build from source", "Compile Agent2 yourself."),
 ]

@@ -14,6 +14,8 @@ struct RunContext: Sendable {
     /// Quick conversational turn: lighter thinking, and Claude Code skips the person's
     /// own hooks and plugins (they can add seconds before the first word).
     var fast = false
+    /// Cua Driver binary to attach as an MCP server, for screen control (source agent only).
+    var screenDriver: String? = nil
 }
 
 struct ToolSpec: @unchecked Sendable {
@@ -62,6 +64,9 @@ enum Runner {
         var args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
                     "--append-system-prompt", system]
         if ctx.fast { args += ["--setting-sources", "project,local", "--effort", "low"] }
+        if let driver = ctx.screenDriver {
+            args += ["--mcp-config", ScreenControl.claudeMCPConfig(driver), "--allowedTools", "mcp__cua-driver"]
+        }
         switch ctx.autonomy {
         case .readOnly: break
         case .editFiles: args += ["--permission-mode", "acceptEdits"]
@@ -116,6 +121,7 @@ enum Runner {
         let sandbox = ["read-only", "workspace-write", "danger-full-access"][[Autonomy.readOnly, .editFiles, .full].firstIndex(of: ctx.autonomy)!]
         let args = ["exec", "--skip-git-repo-check", "--color", "never", "--json", "-s", sandbox]
             + (ctx.fast ? ["-c", "model_reasoning_effort=\"low\""] : [])
+            + (ctx.screenDriver.map(ScreenControl.codexOverrides) ?? [])
             + ["--output-last-message", out.path, combined(system, prompt)]
         let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, onLine: { line in
             let t = line.trimmingCharacters(in: .whitespaces)

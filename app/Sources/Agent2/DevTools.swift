@@ -25,7 +25,7 @@ enum DevTools {
             zip: URL(string: "https://example.com")!, page: URL(string: "https://example.com")!)))
         render(ChatView(voice: voice, openSettings: {}, openHistory: {}, toggleMic: {}), "popover-update", dir)
         for tab in [SettingsTab.source, .agents, .apps, .voice, .about] {
-            render(SettingsView(tab: tab).frame(width: 820, height: tab == .voice ? 1080 : 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
+            render(SettingsView(tab: tab).frame(width: 820, height: tab == .voice || tab == .agents ? 1080 : 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
         }
         // Notch and menu bar pill in each state.
         let m = IndicatorModel.shared

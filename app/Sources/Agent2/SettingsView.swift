@@ -183,6 +183,8 @@ private struct AgentsTab: View {
         }
         .toggleStyle(SquareToggleStyle())
 
+        ScreenControlCard()
+
         RuledList(title: "What agents may do") {
             ForEach(Autonomy.allCases) { level in
                 let on = settings.autonomy == level
@@ -664,5 +666,64 @@ private struct UpdatesCard: View {
             .filter { !$0.isEmpty && !$0.lowercased().hasPrefix("**install") }
             .map { $0.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: #"\[([^\]]*)\]\([^)]*\)"#, with: "$1", options: .regularExpression) }
         return lines.prefix(4).joined(separator: "\n")
+    }
+}
+
+/// Settings → Agents → Screen control (Cua Driver).
+private struct ScreenControlCard: View {
+    @ObservedObject var settings = AppSettings.shared
+    @State private var status = ScreenControl.Status(summary: "Checking…")
+    @State private var copied = false
+
+    var body: some View {
+        Card(title: "Screen control · Cua Driver", trailing: AnyView(tag)) {
+            if ScreenControl.driverPath == nil {
+                Text("Let your agent use the mouse and keyboard on this Mac: open apps, click, type and point at things while you watch its cursor. Agent2 uses Cua Driver for this, an open-source tool (MIT) that runs on your Mac. Install it once with this Terminal command:")
+                    .font(.system(size: 12)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                Text(ScreenControl.installCommand).font(Theme.mono).textSelection(.enabled)
+                    .padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.panelRaised).overlay(Rectangle().stroke(Theme.border))
+                HStack(spacing: 8) {
+                    Button(copied ? "Copied" : "Copy command") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(ScreenControl.installCommand, forType: .string)
+                        copied = true
+                    }.buttonStyle(PrimaryButtonStyle())
+                    Button("About Cua Driver") { NSWorkspace.shared.open(ScreenControl.docs) }.buttonStyle(SecondaryButtonStyle())
+                    Spacer()
+                    Button("Check again") { Task { status = await ScreenControl.status() } }.buttonStyle(SecondaryButtonStyle())
+                }
+            } else {
+                Toggle("Let the source agent use the mouse and keyboard", isOn: $settings.screenControl)
+                Text("Works with Claude Code and Codex as the source. Ask things like \u{201C}open Notes and start a shopping list\u{201D} or \u{201C}show me where the Wi-Fi settings are\u{201D}. You'll see Cua's cursor move as it works. It never types passwords or payment details, and asks before sending or deleting anything.")
+                    .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    permission("Accessibility", status.accessibility)
+                    permission("Screen Recording", status.screenRecording)
+                    Spacer()
+                    if status.summary != "Ready" {
+                        Button("Grant") { ScreenControl.grantPermissions() }.buttonStyle(PrimaryButtonStyle())
+                    }
+                    Button("Check again") { Task { status = await ScreenControl.status() } }.buttonStyle(SecondaryButtonStyle())
+                }
+            }
+        }
+        .toggleStyle(SquareToggleStyle())
+        .task { status = await ScreenControl.status() }
+    }
+
+    private var tag: some View {
+        switch status.summary {
+        case "Ready": return Tag(text: settings.screenControl ? "✓ On" : "Off", tone: settings.screenControl ? .ok : .plain)
+        case "Not installed": return Tag(text: "Not installed")
+        default: return Tag(text: status.summary, tone: .run)
+        }
+    }
+
+    private func permission(_ name: String, _ ok: Bool?) -> some View {
+        HStack(spacing: 6) {
+            Rectangle().fill(ok == true ? Theme.green : ok == false ? Theme.amber : Theme.dim).frame(width: 7, height: 7)
+            Text(name).font(.system(size: 12))
+        }
     }
 }

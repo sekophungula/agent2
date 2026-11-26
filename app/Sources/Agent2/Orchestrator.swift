@@ -73,6 +73,7 @@ final class Orchestrator: ObservableObject {
         let prompt = promptWithContext(history: history, message: text, turns: settings.contextTurns)
         var ctx = makeContext(token: token, delegates: delegates)
         ctx.fast = settings.fastReplies
+        if ["claude-code", "codex"].contains(source.id) { ctx.screenDriver = ScreenControl.activeDriver }
         // Speak the reply sentence by sentence while the source is still writing it.
         let stream = speakOut ? SpeechStream() : nil
         speech = stream
@@ -197,6 +198,9 @@ final class Orchestrator: ObservableObject {
                 ? "\n\nThe person's apps (Gmail, Slack, GitHub, socials, calendars…) are reachable through the Composio CLI: run `composio search \"<task>\"` to find a tool, then `composio execute <TOOL_SLUG> -d '<json>'`. If an app isn't connected, tell them to link it in Agent2 → Settings → Apps."
                 : "\n\nUse composio_search and composio_execute to act in the person's connected apps (Gmail, Slack, GitHub, socials, calendars…)."
             p += " Before sending, posting or deleting anything for them, show the exact draft and get a yes."
+        }
+        if ["claude-code", "codex"].contains(source.id), ScreenControl.activeDriver != nil {
+            p += "\n\n" + ScreenControl.prompt
         }
         return p
     }
