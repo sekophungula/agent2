@@ -120,9 +120,9 @@ enum DevTools {
         }
     }
 
-    /// `Agent2 --update-from <zip> <version> [--relaunch]`: installs a local build over this copy.
+    /// `Agent2 --update-from <zip path or https URL> <version> [--relaunch]`: installs that build over this copy.
     static func updateFrom(zip: String, version: String, relaunch: Bool) {
-        let r = Updater.Release(version: version, notes: "", zip: URL(fileURLWithPath: zip),
+        let r = Updater.Release(version: version, notes: "", zip: zip.hasPrefix("https://") ? URL(string: zip)! : URL(fileURLWithPath: zip),
                                 page: URL(string: "https://github.com/\(Updater.repo)/releases")!)
         Task { @MainActor in
             await Updater.shared.install(r, relaunch: relaunch)
