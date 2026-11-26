@@ -17,7 +17,7 @@ OUT = ROOT / "public"
 
 REPO = "https://github.com/sekophungula/agent2"
 DMG = f"{REPO}/releases/latest/download/Agent2.dmg"
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 
 # (path, source fragment, nav key, title, description)
 PAGES = [
@@ -87,7 +87,7 @@ FOOTER = f"""
         <div><span class="label">Docs</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/troubleshooting/">Troubleshooting</a></div>
         <div><span class="label">Source</span><a href="{REPO}">GitHub</a><a href="{REPO}/releases">Releases</a><a href="{REPO}/blob/main/LICENSE">MIT License</a></div>
       </div>
-      <div class="legal"><span>© 2026 Shakatec</span><span class="sw">v{VERSION}</span></div>
+      <div class="legal"><span>© 2026 <a href="https://shakatec.co.za">Shakatec</a></span><span class="sw">v{VERSION}</span></div>
     </div>
   </footer>"""
 

@@ -31,6 +31,14 @@ struct Agent2Main {
             MainActor.assumeIsolated { DevTools.updateFrom(zip: args[i + 1], version: args[i + 2], relaunch: args.contains("--relaunch")) }
             RunLoop.main.run()
         }
+        if args.contains("--stream-test") {
+            MainActor.assumeIsolated { DevTools.streamTest() }
+            exit(0)
+        }
+        if let i = args.firstIndex(of: "--talk"), i + 1 < args.count {
+            MainActor.assumeIsolated { DevTools.talk(args[i + 1]) }
+            RunLoop.main.run()
+        }
         if let i = args.firstIndex(of: "--say"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.say(args[i + 1]) }
             RunLoop.main.run()

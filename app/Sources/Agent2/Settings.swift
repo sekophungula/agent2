@@ -59,6 +59,7 @@ final class AppSettings: ObservableObject {
     }
     @Published var kokoroVoice: String { didSet { d.set(kokoroVoice, forKey: "kokoroVoice") } }
     @Published var autoUpdateCheck: Bool { didSet { d.set(autoUpdateCheck, forKey: "autoUpdateCheck") } }
+    @Published var fastReplies: Bool { didSet { d.set(fastReplies, forKey: "fastReplies") } }
     @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
@@ -76,11 +77,18 @@ final class AppSettings: ObservableObject {
         workspaceFolder = d.string(forKey: "workspaceFolder") ?? "\(home)/Agent2/Workspace"
         anthropicModel = d.string(forKey: "anthropicModel") ?? "claude-opus-5-5"
         openAIModel = d.string(forKey: "openAIModel") ?? "gpt-6.1-sol"
-        speakReplies = d.object(forKey: "speakReplies") as? Bool ?? false
+        // Agent2 is voice-first: typed messages are answered out loud too. Turned on
+        // once for everyone in 0.1.6; people can still switch it off.
+        if !d.bool(forKey: "speakRepliesOn016") {
+            d.set(true, forKey: "speakRepliesOn016")
+            d.set(true, forKey: "speakReplies")
+        }
+        speakReplies = d.object(forKey: "speakReplies") as? Bool ?? true
         speakVoiceReplies = d.object(forKey: "speakVoiceReplies") as? Bool ?? true
         voiceEngine = VoiceEngine(rawValue: d.string(forKey: "voiceEngine") ?? "") ?? .kokoro
         kokoroVoice = d.string(forKey: "kokoroVoice") ?? Kokoro.voices[0].id
         autoUpdateCheck = d.object(forKey: "autoUpdateCheck") as? Bool ?? true
+        fastReplies = d.object(forKey: "fastReplies") as? Bool ?? true
         placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12

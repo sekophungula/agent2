@@ -67,7 +67,9 @@
 <p>On MacBooks with a notch, Agent2 sits in the notch: a bird on one side, a green square on the other when it's ready. On other Macs it's a bird in the menu bar. Either way, it grows into a green pill while it listens (<b>Listening</b>), works (<b>Working</b>) and talks (<b>Speaking</b>). Change this in Settings → Voice &amp; hotkey → <b>Where Agent2 lives</b>.</p>
 <h2 id="talking-back">Talking back</h2>
 <p>Voice requests are answered out loud, in a sentence or two about what was done. Agent2 isn't trying to replace your agents' own apps: there are no tables or long explanations, and long results are saved as files in your workspace. Everything is still saved in your <a href="/docs/history/">history</a>.</p>
-<p>Turn <b>Answer voice requests out loud</b> off if you'd rather read. <b>Also read replies to typed messages aloud</b> does the same for typing.</p>
+<p>Agent2 doesn't wait for the whole reply: it starts speaking as soon as your agent has written its first sentence, and keeps going while the agent writes the rest. Code and instructions meant for other agents are skipped.</p>
+<p>Typed messages are answered out loud too. Turn <b>Answer voice requests out loud</b> or <b>Answer typed messages out loud too</b> off if you'd rather read.</p>
+<p><b>Fast replies</b> (on by default) makes the source agent think lightly and has Claude Code skip your own hooks and plugins, which can add several seconds before the first word. Work it hands to other agents still gets full effort. Turn it off for slower, deeper answers.</p>
 <h2 id="the-voice">The voice</h2>
 <p>Agent2 speaks with <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank" rel="noopener noreferrer">Kokoro</a>, a small open-source voice model (Apache 2.0), run on your Mac by <a href="https://github.com/FluidInference/FluidAudio" target="_blank" rel="noopener noreferrer">FluidAudio</a>. Nothing you hear is generated in the cloud.</p>
 <ul>
@@ -92,7 +94,7 @@
         <div><span class="label">Docs</span><a href="/docs/">What is Agent2?</a><a href="/docs/install/">Install</a><a href="/docs/troubleshooting/">Troubleshooting</a></div>
         <div><span class="label">Source</span><a href="https://github.com/sekophungula/agent2" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/sekophungula/agent2/releases" target="_blank" rel="noopener noreferrer">Releases</a><a href="https://github.com/sekophungula/agent2/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></div>
       </div>
-      <div class="legal"><span>© 2026 Shakatec</span><span class="sw">v0.1.5</span></div>
+      <div class="legal"><span>© 2026 <a href="https://shakatec.co.za" target="_blank" rel="noopener noreferrer">Shakatec</a></span><span class="sw">v0.1.6</span></div>
     </div>
   </footer>
 

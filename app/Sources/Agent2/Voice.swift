@@ -135,29 +135,46 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published private(set) var isSpeaking = false
     private let synth = AVSpeechSynthesizer()
     private let kokoro = KokoroPlayer()
-    private var speakTask: Task<Void, Never>?
 
     override init() {
         super.init()
         synth.delegate = self
-        kokoro.onFinish = { [weak self] in self?.isSpeaking = false }
+        kokoro.onFinish = { [weak self] in
+            guard let self else { return }
+            if !self.synth.isSpeaking { self.isSpeaking = false }
+        }
+        kokoro.onFailure = { [weak self] text in self?.speakSystem(text) }
     }
 
-    /// Reads `text` aloud with Kokoro when it's installed and chosen, otherwise the macOS voice.
+    /// Reads a whole reply aloud, replacing anything already being said.
     func speak(_ text: String) {
         let clean = Speaker.spoken(text)
         guard !clean.isEmpty else { return }
         stop()
+        enqueue(clean)
+    }
+
+    /// Adds text to what's being said, without interrupting it. Used to speak a
+    /// reply sentence by sentence while the agent is still writing it.
+    /// Dev tools only: told about every piece of text queued for speech.
+    static var trace: ((String) -> Void)?
+
+    func enqueue(_ text: String) {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        Speaker.trace?(clean)
         isSpeaking = true
         let settings = AppSettings.shared
         // First spoken reply with Kokoro chosen: fetch it in the background and use
         // the macOS voice until it's ready.
         if settings.voiceEngine == .kokoro, Kokoro.shared.state == .notInstalled { Kokoro.shared.prepare() }
-        guard settings.voiceEngine == .kokoro, Kokoro.shared.isReady else { return speakSystem(clean) }
-        let voice = settings.kokoroVoice
-        speakTask = Task { [weak self] in
-            do { try await self?.kokoro.speak(clean, voice: voice) }
-            catch { if !Task.isCancelled { self?.speakSystem(clean) } }
+        // Don't switch voices halfway through a reply.
+        if settings.voiceEngine == .kokoro, Kokoro.shared.isReady, !synth.isSpeaking {
+            kokoro.enqueue(clean, voice: settings.kokoroVoice)
+        } else if kokoro.isBusy {
+            kokoro.enqueue(clean, voice: settings.kokoroVoice)
+        } else {
+            speakSystem(clean)
         }
     }
 
@@ -171,14 +188,13 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func stop() {
-        speakTask?.cancel(); speakTask = nil
         kokoro.stop()
         synth.stopSpeaking(at: .immediate)
         isSpeaking = false
     }
 
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish u: AVSpeechUtterance) {
-        Task { @MainActor in if !self.synth.isSpeaking { self.isSpeaking = false } }
+        Task { @MainActor in if !self.synth.isSpeaking && !self.kokoro.isBusy { self.isSpeaking = false } }
     }
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didCancel u: AVSpeechUtterance) {
         Task { @MainActor in self.isSpeaking = false }
@@ -199,7 +215,7 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     /// Turns Markdown into something that sounds natural read aloud.
-    static func spoken(_ text: String) -> String {
+    static func spoken(_ text: String, limit: Int? = 700) -> String {
         var s = text
         let rules: [(String, String)] = [
             (#"```[\s\S]*?```"#, " "),                    // code blocks
@@ -218,9 +234,80 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             s = s.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
         }
         s = s.replacingOccurrences(of: "⚠️", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.count > 700, let cut = s.prefix(700).lastIndex(where: { ".!?".contains($0) }) {
+        if let limit, s.count > limit, let cut = s.prefix(limit).lastIndex(where: { ".!?".contains($0) }) {
             s = String(s[...cut]) + " The rest is in the Agent2 window."
         }
         return s
+    }
+}
+
+/// Turns a reply that arrives in pieces into speech, one finished sentence at a
+/// time. Skips code blocks and `<delegate>` instructions meant for other agents,
+/// and stops after about a minute of talking (the rest is in the window).
+@MainActor
+final class SpeechStream {
+    private var buffer = ""
+    private var spokenChars = 0
+    private var capped = false
+    private(set) var spokeAnything = false
+    static let maxChars = 900
+
+    func feed(_ piece: String) {
+        buffer += piece
+        drain(final: false)
+    }
+
+    /// The reply is complete: speak whatever is left.
+    func finish() { drain(final: true) }
+
+    private func drain(final: Bool) {
+        guard !capped else { buffer = ""; return }
+        // Drop finished code blocks and delegation blocks.
+        for pattern in [#"```[\s\S]*?```"#, #"<delegate\b[\s\S]*?</delegate>"#] {
+            buffer = buffer.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
+        }
+        // Text from an unfinished code block or <delegate> tag onward isn't speech
+        // (at the end of the reply it's dropped). A trailing "<del…" may be a tag starting.
+        var safeEnd = buffer.endIndex
+        if let r = buffer.range(of: "```") { safeEnd = r.lowerBound }
+        if let r = buffer.range(of: "<delegate"), r.lowerBound < safeEnd { safeEnd = r.lowerBound }
+        if !final, let r = buffer.range(of: "<", options: .backwards), r.lowerBound < safeEnd,
+           "<delegate".hasPrefix(String(buffer[r.lowerBound...])) {
+            safeEnd = r.lowerBound
+        }
+        let safe = buffer[..<safeEnd]
+        // Speak up to the last sentence end (or line break) in the safe part.
+        var cut = safe.startIndex
+        if final {
+            cut = safe.endIndex
+        } else {
+            var i = safe.startIndex
+            while i < safe.endIndex {
+                let c = safe[i]
+                let next = safe.index(after: i)
+                if c == "\n" || (".!?".contains(c) && (next == safe.endIndex ? false : safe[next].isWhitespace)) {
+                    cut = next
+                }
+                i = next
+            }
+            // Nothing said yet and a long first sentence: start at a comma rather than wait.
+            if cut == safe.startIndex, !spokeAnything, safe.count > 80,
+               let r = safe.range(of: ", ", options: .backwards), safe.distance(from: safe.startIndex, to: r.lowerBound) > 30 {
+                cut = r.upperBound
+            }
+        }
+        guard cut > safe.startIndex else { if final { buffer = "" }; return }
+        let chunk = String(safe[..<cut])
+        buffer.removeSubrange(buffer.startIndex..<cut)
+        if final { buffer = "" }
+        let text = Speaker.spoken(chunk, limit: nil)
+        guard !text.isEmpty, text.contains(where: { $0.isLetter || $0.isNumber }) else { return }
+        spokenChars += text.count
+        spokeAnything = true
+        Speaker.shared.enqueue(text)
+        if spokenChars > Self.maxChars {
+            capped = true
+            Speaker.shared.enqueue("The rest is in the Agent2 window.")
+        }
     }
 }

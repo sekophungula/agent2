@@ -9,6 +9,11 @@ struct RunContext: Sendable {
     let progress: @Sendable (String) -> Void
     /// Tools Agent2 offers API-based agents (delegation, Composio, history search).
     let tools: ToolHost?
+    /// The source agent's reply text as it's written, so Agent2 can start speaking early.
+    var onText: (@Sendable (String) -> Void)? = nil
+    /// Quick conversational turn: lighter thinking, and Claude Code skips the person's
+    /// own hooks and plugins (they can add seconds before the first word).
+    var fast = false
 }
 
 struct ToolSpec: @unchecked Sendable {
@@ -54,7 +59,9 @@ enum Runner {
 
     // MARK: Claude Code (headless, stream-json)
     private static func claudeCode(_ a: AgentInfo, _ prompt: String, _ system: String, _ ctx: RunContext) async throws -> String {
-        var args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--append-system-prompt", system]
+        var args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
+                    "--append-system-prompt", system]
+        if ctx.fast { args += ["--setting-sources", "project,local", "--effort", "low"] }
         switch ctx.autonomy {
         case .readOnly: break
         case .editFiles: args += ["--permission-mode", "acceptEdits"]
@@ -64,6 +71,15 @@ enum Runner {
         let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, onLine: { line in
             guard let obj = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { return }
             switch obj["type"] as? String {
+            case "stream_event":
+                // Token-by-token text, so speech can start before the reply is finished.
+                guard let ev = obj["event"] as? [String: Any] else { return }
+                if ev["type"] as? String == "content_block_delta",
+                   let d = ev["delta"] as? [String: Any], d["type"] as? String == "text_delta", let t = d["text"] as? String {
+                    ctx.onText?(t)
+                } else if ev["type"] as? String == "content_block_stop" {
+                    ctx.onText?("\n")
+                }
             case "assistant":
                 let content = (obj["message"] as? [String: Any])?["content"] as? [[String: Any]] ?? []
                 for block in content {
@@ -98,11 +114,24 @@ enum Runner {
         let out = FileManager.default.temporaryDirectory.appendingPathComponent("agent2-codex-\(UUID().uuidString).txt")
         defer { try? FileManager.default.removeItem(at: out) }
         let sandbox = ["read-only", "workspace-write", "danger-full-access"][[Autonomy.readOnly, .editFiles, .full].firstIndex(of: ctx.autonomy)!]
-        let args = ["exec", "--skip-git-repo-check", "--color", "never", "-s", sandbox,
-                    "--output-last-message", out.path, combined(system, prompt)]
+        let args = ["exec", "--skip-git-repo-check", "--color", "never", "--json", "-s", sandbox]
+            + (ctx.fast ? ["-c", "model_reasoning_effort=\"low\""] : [])
+            + ["--output-last-message", out.path, combined(system, prompt)]
         let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, onLine: { line in
             let t = line.trimmingCharacters(in: .whitespaces)
-            if !t.isEmpty { ctx.progress("Codex: \(t.prefix(120))") }
+            guard !t.isEmpty else { return }
+            guard let obj = try? JSONSerialization.jsonObject(with: Data(t.utf8)) as? [String: Any] else {
+                return ctx.progress("Codex: \(t.prefix(120))")
+            }
+            // `codex exec --json` events: each finished item, e.g. a message or a command.
+            guard let item = obj["item"] as? [String: Any] else { return }
+            let kind = item["type"] as? String ?? item["item_type"] as? String ?? ""
+            if kind.contains("message"), obj["type"] as? String == "item.completed", let text = item["text"] as? String {
+                ctx.onText?(text + "\n")
+                ctx.progress("Codex: \(text.prefix(120))")
+            } else if let cmd = item["command"] as? String {
+                ctx.progress("Codex → \(cmd.prefix(100))")
+            }
         }, cancel: ctx.cancel)
         if let text = try? String(contentsOf: out, encoding: .utf8), !text.isEmpty { return text }
         if res.status == 0 { return res.stdout }
@@ -111,7 +140,7 @@ enum Runner {
 
     private static func simpleCLI(_ a: AgentInfo, _ args: [String], _ ctx: RunContext) async throws -> String {
         ctx.progress("\(a.name) is working…")
-        let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, cancel: ctx.cancel)
+        let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, onLine: { ctx.onText?($0 + "\n") }, cancel: ctx.cancel)
         if res.status == 0 { return res.stdout.trimmingCharacters(in: .whitespacesAndNewlines) }
         throw RunnerError.failed("\(a.name) exited (\(res.status)): \(res.stderr.suffix(400))")
     }

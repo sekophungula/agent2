@@ -415,9 +415,12 @@ private struct VoiceTab: View {
 
         Card(title: "Talking back") {
             Toggle("Answer voice requests out loud", isOn: $settings.speakVoiceReplies)
-            Text("Hold ⌃⌥ and talk: no window opens, and Agent2 tells you what it did. Click the notch or the menu bar icon to stop it speaking.")
+            Text("Hold ⌃⌥ and talk: no window opens, and Agent2 tells you what it did. It starts speaking as soon as your agent writes its first sentence. Click the notch or the menu bar icon to stop it.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
-            Toggle("Also read replies to typed messages aloud", isOn: $settings.speakReplies)
+            Toggle("Answer typed messages out loud too", isOn: $settings.speakReplies)
+            Toggle("Fast replies", isOn: $settings.fastReplies)
+            Text("The source agent thinks lightly and Claude Code skips your own hooks and plugins, so the first words come in a few seconds. Work it hands to other agents still gets full effort. Turn off for slower, deeper answers.")
+                .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             Text("Your words are transcribed on this Mac, and the Kokoro voice runs on it too.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
         }

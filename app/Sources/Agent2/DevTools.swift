@@ -130,4 +130,50 @@ enum DevTools {
             exit(0)
         }
     }
+
+    /// `Agent2 --talk "message"`: sends a typed message to the source and speaks the
+    /// reply as it streams, printing when each sentence was queued and when the agent finished.
+    static func talk(_ message: String) {
+        AgentRegistry.shared.refresh()
+        Kokoro.shared.loadIfInstalled()
+        Task { @MainActor in
+            while Kokoro.shared.state == .downloading { try? await Task.sleep(for: .milliseconds(100)) }
+            let o = Orchestrator.shared
+            let t0 = Date()
+            var first: Double?
+            Speaker.trace = { text in
+                let t = Date().timeIntervalSince(t0)
+                if first == nil { first = t }
+                print(String(format: "%6.1fs  speak: %@", t, text))
+            }
+            print("Source: \(AgentRegistry.shared.source?.name ?? "none"), voice: \(Kokoro.shared.isReady ? "Kokoro" : "macOS")")
+            o.send(message)
+            while o.isWorking { try? await Task.sleep(for: .milliseconds(50)) }
+            let done = Date().timeIntervalSince(t0)
+            print(String(format: "%6.1fs  agent finished", done))
+            try? await Task.sleep(for: .milliseconds(500))
+            while Speaker.shared.isSpeaking { try? await Task.sleep(for: .milliseconds(100)) }
+            print(String(format: "First speech %.1fs after sending; agent took %.1fs; all speech done at %.1fs",
+                         first ?? -1, done, Date().timeIntervalSince(t0)))
+            exit(0)
+        }
+    }
+
+    /// `Agent2 --stream-test`: feeds a sample reply to SpeechStream in small pieces and
+    /// prints what would be spoken (nothing is played).
+    static func streamTest() {
+        var said: [String] = []
+        Speaker.trace = { said.append($0) }
+        let reply = "I'll ask Codex to write the tests now. <delegate agent=\"codex\">Add parser tests in tests/</delegate> " +
+            "Here's the command:\n```bash\nnpm test\n```\nWhen it's done, I'll tell you. Prices are < 5 dollars! **Done.**"
+        let s = SpeechStream()
+        var i = reply.startIndex
+        while i < reply.endIndex {
+            let j = reply.index(i, offsetBy: 3, limitedBy: reply.endIndex) ?? reply.endIndex
+            s.feed(String(reply[i..<j])); i = j
+        }
+        s.finish()
+        Speaker.shared.stop()
+        for (n, line) in said.enumerated() { print("\(n + 1). \(line)") }
+    }
 }

@@ -95,56 +95,56 @@ final class Kokoro: ObservableObject {
     }
 }
 
-/// Plays Kokoro speech sentence by sentence: the first sentence starts playing
-/// while the next one is still being generated, so replies start quickly.
+/// Plays Kokoro speech from a queue of sentences. Text can be added while
+/// earlier sentences are playing: each is generated while the one before it plays,
+/// so speech starts as soon as the first sentence of a reply exists.
 @MainActor
 final class KokoroPlayer {
     private let engine = AVAudioEngine()
     private let node = AVAudioPlayerNode()
     private let format = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!
-    private var task: Task<Void, Never>?
+    private var queue: [(text: String, voice: String)] = []
+    private var worker: Task<Void, Never>?
     private var pending = 0
-    private var finishedGenerating = false
     private var generation = 0
+    /// All queued speech has been played.
     var onFinish: () -> Void = {}
+    /// Kokoro couldn't voice this text; the caller can use another voice for it.
+    var onFailure: (String) -> Void = { _ in }
+
+    var isBusy: Bool { worker != nil || pending > 0 }
 
     init() {
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: format)
     }
 
-    /// Speaks `text`. Throws (before any sound) if the first sentence can't be generated,
-    /// so the caller can fall back to the macOS voice.
-    func speak(_ text: String, voice: String) async throws {
-        stop()
-        generation += 1
+    func enqueue(_ text: String, voice: String) {
+        queue += Self.sentences(text).map { ($0, voice) }
+        guard worker == nil, !queue.isEmpty else { return }
         let gen = generation
-        let parts = Self.sentences(text)
-        guard let first = parts.first else { onFinish(); return }
-
-        let firstSamples = try await Kokoro.shared.synthesize(first, voice: voice)
-        guard gen == generation else { return }
-        if !engine.isRunning { try engine.start() }
-        finishedGenerating = false
-        schedule(firstSamples, gen: gen)
-        node.play()
-
-        task = Task { [weak self] in
-            for part in parts.dropFirst() {
-                guard let self, !Task.isCancelled, gen == self.generation else { return }
-                guard let samples = try? await Kokoro.shared.synthesize(part, voice: voice) else { continue }
-                guard !Task.isCancelled, gen == self.generation else { return }
-                self.schedule(samples, gen: gen)
+        worker = Task { [weak self] in
+            while let self, gen == self.generation, !self.queue.isEmpty {
+                let next = self.queue.removeFirst()
+                do {
+                    let samples = try await Kokoro.shared.synthesize(next.text, voice: next.voice)
+                    guard gen == self.generation, !Task.isCancelled else { return }
+                    self.schedule(samples, gen: gen)
+                } catch {
+                    guard gen == self.generation, !Task.isCancelled else { return }
+                    self.onFailure(next.text)
+                }
             }
             guard let self, gen == self.generation else { return }
-            self.finishedGenerating = true
+            self.worker = nil
             if self.pending == 0 { self.onFinish() }
         }
     }
 
     func stop() {
         generation += 1
-        task?.cancel(); task = nil
+        queue.removeAll()
+        worker?.cancel(); worker = nil
         node.stop()
         pending = 0
     }
@@ -156,14 +156,16 @@ final class KokoroPlayer {
         samples.withUnsafeBufferPointer { src in
             buf.floatChannelData![0].update(from: src.baseAddress!, count: samples.count)
         }
+        if !engine.isRunning { try? engine.start() }
         pending += 1
         node.scheduleBuffer(buf, completionCallbackType: .dataPlayedBack) { [weak self] _ in
             Task { @MainActor in
                 guard let self, gen == self.generation else { return }
                 self.pending -= 1
-                if self.pending == 0 && self.finishedGenerating { self.onFinish() }
+                if self.pending == 0 && self.worker == nil { self.onFinish() }
             }
         }
+        if !node.isPlaying { node.play() }
     }
 
     /// Splits text into sentences, merging very short ones so the voice keeps its flow.
@@ -173,6 +175,6 @@ final class KokoroPlayer {
             guard let s = s?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return }
             if let last = out.last, last.count < 40 { out[out.count - 1] = last + " " + s } else { out.append(s) }
         }
-        return out.isEmpty && !text.isEmpty ? [text] : out
+        return out.isEmpty && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? [text] : out
     }
 }

@@ -13,6 +13,8 @@ final class Orchestrator: ObservableObject {
     @Published var status: String = ""
     /// True while the current request came from the ⌃⌥ voice shortcut.
     @Published private(set) var voiceRequest = false
+    /// Speech for the reply in progress, if it's being read aloud.
+    private var speech: SpeechStream?
     private var cancel: CancelToken?
 
     private let delegatePattern = try! NSRegularExpression(
@@ -31,6 +33,8 @@ final class Orchestrator: ObservableObject {
     }
 
     func stop() {
+        speech = nil
+        Speaker.shared.stop()
         cancel?.cancel()
         cancel = nil
         isWorking = false
@@ -64,9 +68,19 @@ final class Orchestrator: ObservableObject {
 
         let settings = AppSettings.shared
         let delegates = registry.delegates
-        let system = systemPrompt(source: source, delegates: delegates, spoken: spoken)
+        let speakOut = spoken ? settings.speakVoiceReplies : settings.speakReplies
+        let system = systemPrompt(source: source, delegates: delegates, spoken: speakOut)
         let prompt = promptWithContext(history: history, message: text, turns: settings.contextTurns)
-        let ctx = makeContext(token: token, delegates: delegates)
+        var ctx = makeContext(token: token, delegates: delegates)
+        ctx.fast = settings.fastReplies
+        // Speak the reply sentence by sentence while the source is still writing it.
+        let stream = speakOut ? SpeechStream() : nil
+        speech = stream
+        if let stream {
+            ctx.onText = { piece in
+                DispatchQueue.main.async { MainActor.assumeIsolated { if !token.isCancelled { stream.feed(piece) } } }
+            }
+        }
 
         Task {
             do {
@@ -99,9 +113,23 @@ final class Orchestrator: ObservableObject {
         isWorking = false
         status = ""
         cancel = nil
-        let s = AppSettings.shared
-        guard voiceRequest ? s.speakVoiceReplies : s.speakReplies, !text.isEmpty, text != "Stopped." else { return }
-        Speaker.shared.speak(failed ? "That didn't work. " + Orchestrator.shortError(text) : text)
+        let stream = speech
+        speech = nil
+        guard let stream, !text.isEmpty, text != "Stopped." else { return }
+        if failed {
+            Speaker.shared.speak("That didn't work. " + Orchestrator.shortError(text))
+        } else {
+            // Agents that can't stream (API keys, some CLIs) are read out in one go.
+            // The streamed text is everything the source said, while the reply is only its
+            // final message, so if the stream already spoke, just say the rest.
+            // Queued after any text still on its way to the stream, so nothing is cut off.
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    stream.finish()
+                    if !stream.spokeAnything { Speaker.shared.speak(text) }
+                }
+            }
+        }
     }
 
     /// A one-line, speakable version of an error.
