@@ -16,6 +16,10 @@ final class Orchestrator: ObservableObject {
     /// Speech for the reply in progress, if it's being read aloud.
     private var speech: SpeechStream?
     private var cancel: CancelToken?
+    /// Things the person said while a request was still running (they talked over
+    /// Agent2). Sent together as soon as that request finishes.
+    private var queued: [String] = []
+    private var queuedSpoken = false
 
     private let delegatePattern = try! NSRegularExpression(
         pattern: #"<delegate\s+agent="([^"]+)"\s*>([\s\S]*?)</delegate>"#)
@@ -33,6 +37,8 @@ final class Orchestrator: ObservableObject {
     }
 
     func stop() {
+        CompanionCursor.shared.clearPoint()
+        queued = []
         speech = nil
         Speaker.shared.stop()
         cancel?.cancel()
@@ -44,8 +50,21 @@ final class Orchestrator: ObservableObject {
     func send(_ text: String, spoken: Bool = false) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        // Simple things ("open Safari", "mute") are done at once, without an agent.
+        if AppSettings.shared.instantCommands, let action = QuickCommands.match(text), action.run() {
+            if conversation.turns.isEmpty { conversation.title = String(text.prefix(60)) }
+            append(.init(role: .user, agent: "You", text: text))
+            append(.init(role: .assistant, agent: "Agent2", text: action.reply))
+            let settings = AppSettings.shared
+            if spoken ? settings.speakVoiceReplies : settings.speakReplies, !isWorking { Speaker.shared.speak(action.reply) }
+            HistoryMemory.shared.historyChanged()
+            return
+        }
         if isWorking {
-            if spoken { Speaker.shared.speak("I'm still on your last request. Give me a moment.") }
+            // Keep the current request going and pick this up straight after it.
+            queued.append(text)
+            queuedSpoken = queuedSpoken || spoken
+            status = "Got it. I'll do that next."
             return
         }
         Speaker.shared.stop()
@@ -70,22 +89,50 @@ final class Orchestrator: ObservableObject {
         let delegates = registry.delegates
         let speakOut = spoken ? settings.speakVoiceReplies : settings.speakReplies
         let system = systemPrompt(source: source, delegates: delegates, spoken: speakOut)
-        let prompt = promptWithContext(history: history, message: text, turns: settings.contextTurns)
+        let basePrompt = promptWithContext(history: history, message: text, turns: settings.contextTurns)
         var ctx = makeContext(token: token, delegates: delegates)
         ctx.fast = settings.fastReplies
+        // Fast replies: Claude Code answers with Sonnet, which starts replying in about
+        // half the time of the larger default model.
+        // The model picked in Settings; otherwise fast replies use Sonnet on Claude Code.
+        let model: String? = settings.model(for: source.id)
+            ?? (settings.fastReplies && source.id == "claude-code" ? "sonnet" : nil)
         if ["claude-code", "codex"].contains(source.id) { ctx.screenDriver = ScreenControl.activeDriver }
-        // Speak the reply sentence by sentence while the source is still writing it.
+        // Speak the reply sentence by sentence while the source is still writing it,
+        // and move the cursor as soon as a [POINT:…] mark has been written.
+        CompanionCursor.shared.clearPoint()
         let stream = speakOut ? SpeechStream() : nil
         speech = stream
-        if let stream {
-            ctx.onText = { piece in
-                DispatchQueue.main.async { MainActor.assumeIsolated { if !token.isCancelled { stream.feed(piece) } } }
+        let pointer = PointWatcher()
+        ctx.onText = { piece in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    guard !token.isCancelled else { return }
+                    stream?.feed(piece)
+                    pointer.feed(piece)
+                }
             }
         }
+        // The screen goes with the request to agents that can look at images.
+        let shareScreen = settings.shareScreen && ScreenLook.imageAgents.contains(source.id)
 
         Task {
             do {
-                var reply = try await Runner.run(source, prompt: prompt, system: system, model: nil, ctx: ctx)
+                // What earlier conversations say about this, from the history graph.
+                var prompt = basePrompt
+                if let past = await HistoryMemory.shared.recall(text), !token.isCancelled {
+                    prompt = "<from_past_conversations>\nRelated notes from the person's earlier Agent2 conversations (a knowledge graph of the history). Use them if relevant, ignore them if not, and don't mention them unless asked.\n\n\(past)\n</from_past_conversations>\n\n" + prompt
+                }
+                var firstCtx = ctx
+                if shareScreen, let shot = await ScreenLook.capture(spoken: spoken), !token.isCancelled {
+                    prompt = ScreenLook.prompt(shot) + "\n\n" + prompt
+                    firstCtx.image = shot.file
+                    pointer.shot = shot
+                }
+                defer { if let f = firstCtx.image { try? FileManager.default.removeItem(at: f) } }
+                var reply = try await Runner.run(source, prompt: prompt, system: system, model: model, ctx: firstCtx)
+                if !token.isCancelled { pointer.finish(reply) }
+                reply = ScreenLook.withoutMarks(reply)
                 // CLI agents delegate with <delegate> tags; API agents use the delegate tool inside their own loop.
                 var round = 0
                 while source.kind == .cli, round < 3, case let tasks = parseDelegations(reply), !tasks.isEmpty {
@@ -97,7 +144,7 @@ final class Orchestrator: ObservableObject {
                     let followUp = "Results from the agents you delegated to:\n\n" + results
                         + "\n\nNow tell the person, briefly, what was done. Delegate again only if something essential is still missing."
                     reply = try await Runner.run(source, prompt: promptWithContext(history: conversation.turns, message: followUp, turns: settings.contextTurns),
-                                                 system: system, model: nil, ctx: ctx)
+                                                 system: system, model: model, ctx: ctx)
                 }
                 finish(reply: stripDelegations(reply), from: source)
             } catch is CancellationError {
@@ -108,14 +155,36 @@ final class Orchestrator: ObservableObject {
         }
     }
 
+    /// The person started talking over the reply: stop reading it out (the rest is
+    /// still in the window), but let the request carry on.
+    func interrupted() {
+        speech = nil
+        Speaker.shared.stop()
+    }
+
+    /// Sends what the person said while the last request was running.
+    private func sendQueued() {
+        guard !queued.isEmpty, !isWorking else { return }
+        let text = queued.count == 1 ? queued[0] : queued.joined(separator: " ")
+        let spoken = queuedSpoken
+        queued = []; queuedSpoken = false
+        send("(I said this while you were working on my last message.) " + text, spoken: spoken)
+    }
+
     private func finish(reply: String, from source: AgentInfo, failed: Bool = false) {
-        let text = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = Self.withoutNarration(reply).trimmingCharacters(in: .whitespacesAndNewlines)
         append(.init(role: .assistant, agent: source.name, text: text.isEmpty ? "(no reply)" : text))
+        HistoryMemory.shared.historyChanged()
         isWorking = false
         status = ""
         cancel = nil
         let stream = speech
         speech = nil
+        if !queued.isEmpty {
+            // They've already moved on: don't read this reply out, go to what they said.
+            DispatchQueue.main.async { MainActor.assumeIsolated { self.sendQueued() } }
+            return
+        }
         guard let stream, !text.isEmpty, text != "Stopped." else { return }
         if failed {
             Speaker.shared.speak("That didn't work. " + Orchestrator.shortError(text))
@@ -131,6 +200,16 @@ final class Orchestrator: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Drops an opening where the agent describes the request to itself ("The user
+    /// wants a sentence…:"), which fast models sometimes write before the answer.
+    static func withoutNarration(_ reply: String) -> String {
+        let pattern = #"^\s*The (user|person)('s| is)? (wants?|asks?|asked|asking|is asking|requests?|requested|would like|needs?)\b[^\n]*?(:|\.)(\s+|$)"#
+        guard let r = reply.range(of: pattern, options: [.regularExpression, .caseInsensitive]) else { return reply }
+        let rest = reply[r.upperBound...]
+        // Only when there's an actual answer after it.
+        return rest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? reply : String(rest)
     }
 
     /// A one-line, speakable version of an error.
@@ -163,6 +242,7 @@ final class Orchestrator: ObservableObject {
         - No tables, headings, bullet lists, code blocks or long explanations. If there's a long result (a document, code, a list), save it to a file in the workspace and say where it is.
         - If you need something from them (a choice, a confirmation, a missing detail), ask one short question.
         - Never invent facts, files or links.
+        - Write only to the person, as "you". Never think out loud or describe their request ("The user wants…", "They're asking for…", "Let me check…"): go straight to the answer.
         """
         if spoken {
             p += """

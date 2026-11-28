@@ -28,6 +28,12 @@ enum ListenMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// What turns speech into text.
+enum DictationEngine: String, CaseIterable, Identifiable {
+    case parakeet, apple
+    var id: String { rawValue }
+}
+
 enum VoiceEngine: String, CaseIterable, Identifiable {
     case kokoro, system
     var id: String { rawValue }
@@ -60,6 +66,29 @@ final class AppSettings: ObservableObject {
     @Published var workspaceFolder: String { didSet { d.set(workspaceFolder, forKey: "workspaceFolder") } }
     @Published var anthropicModel: String { didSet { d.set(anthropicModel, forKey: "anthropicModel") } }
     @Published var openAIModel: String { didSet { d.set(openAIModel, forKey: "openAIModel") } }
+    /// The model chosen for each command-line agent (agent id → model id). Missing
+    /// or empty: the agent's own default.
+    @Published var agentModels: [String: String] { didSet { d.set(agentModels, forKey: "agentModels") } }
+
+    /// The model the person picked for `agentID`, or nil for the agent's own default.
+    func model(for agentID: String) -> String? {
+        let m: String
+        switch agentID {
+        case "anthropic-api": m = anthropicModel
+        case "openai-api": m = openAIModel
+        default: m = agentModels[agentID] ?? ""
+        }
+        let t = m.trimmingCharacters(in: .whitespaces)
+        return t.isEmpty ? nil : t
+    }
+
+    func setModel(_ model: String, for agentID: String) {
+        switch agentID {
+        case "anthropic-api": anthropicModel = model
+        case "openai-api": openAIModel = model
+        default: agentModels[agentID] = model.isEmpty ? nil : model
+        }
+    }
     /// Read replies to *typed* messages aloud too (voice requests are always answered out loud).
     @Published var speakReplies: Bool { didSet { d.set(speakReplies, forKey: "speakReplies") } }
     @Published var speakVoiceReplies: Bool { didSet { d.set(speakVoiceReplies, forKey: "speakVoiceReplies") } }
@@ -72,7 +101,25 @@ final class AppSettings: ObservableObject {
     @Published var kokoroVoice: String { didSet { d.set(kokoroVoice, forKey: "kokoroVoice") } }
     @Published var autoUpdateCheck: Bool { didSet { d.set(autoUpdateCheck, forKey: "autoUpdateCheck") } }
     @Published var fastReplies: Bool { didSet { d.set(fastReplies, forKey: "fastReplies") } }
+    @Published var dictationEngine: DictationEngine {
+        didSet {
+            d.set(dictationEngine.rawValue, forKey: "dictationEngine")
+            if dictationEngine == .parakeet { Task { @MainActor in Parakeet.shared.prepare() } }
+        }
+    }
+    /// Agent2 does simple things (open an app, mute) itself, instantly.
+    @Published var instantCommands: Bool { didSet { d.set(instantCommands, forKey: "instantCommands") } }
     @Published var screenControl: Bool { didSet { d.set(screenControl, forKey: "screenControl") } }
+    /// Send a screenshot of the display you're on (and where your pointer is) with each request.
+    @Published var shareScreen: Bool { didSet { d.set(shareScreen, forKey: "shareScreen") } }
+    /// Agent2's own green agent cursor (with a fading trail) instead of Cua's.
+    @Published var companionCursor: Bool {
+        didSet { d.set(companionCursor, forKey: "companionCursor"); Task { @MainActor in CompanionCursor.shared.refresh() } }
+    }
+    /// How long the companion cursor's trail takes to fade, in seconds.
+    @Published var companionTrail: Double { didSet { d.set(companionTrail, forKey: "companionTrail") } }
+    /// Between agent moves, the companion cursor shadows the person's pointer.
+    @Published var companionFollows: Bool { didSet { d.set(companionFollows, forKey: "companionFollows") } }
     @Published var listenMode: ListenMode {
         didSet {
             d.set(listenMode.rawValue, forKey: "listenMode")
@@ -82,6 +129,10 @@ final class AppSettings: ObservableObject {
     @Published var placement: Placement { didSet { d.set(placement.rawValue, forKey: "placement") } }
     @Published var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     @Published var contextTurns: Int { didSet { d.set(contextTurns, forKey: "contextTurns") } }
+    /// Remember across conversations with a graphify knowledge graph of the history.
+    @Published var historyMemory: Bool {
+        didSet { d.set(historyMemory, forKey: "historyMemory"); if historyMemory { Task { @MainActor in HistoryMemory.shared.start() } } }
+    }
 
     @Published var anthropicKey: String { didSet { Keychain.set(anthropicKey, for: "anthropic") } }
     @Published var openAIKey: String { didSet { Keychain.set(openAIKey, for: "openai") } }
@@ -95,7 +146,8 @@ final class AppSettings: ObservableObject {
         historyFolder = d.string(forKey: "historyFolder") ?? "\(home)/Agent2/History"
         workspaceFolder = d.string(forKey: "workspaceFolder") ?? "\(home)/Agent2/Workspace"
         anthropicModel = d.string(forKey: "anthropicModel") ?? "claude-opus-5-5"
-        openAIModel = d.string(forKey: "openAIModel") ?? "gpt-6.1-sol"
+        openAIModel = d.string(forKey: "openAIModel") ?? "gpt-6.2-sol"
+        agentModels = d.dictionary(forKey: "agentModels") as? [String: String] ?? [:]
         // Agent2 is voice-first: typed messages are answered out loud too. Turned on
         // once for everyone in 0.1.6; people can still switch it off.
         if !d.bool(forKey: "speakRepliesOn016") {
@@ -108,12 +160,19 @@ final class AppSettings: ObservableObject {
         kokoroVoice = d.string(forKey: "kokoroVoice") ?? Kokoro.voices[0].id
         autoUpdateCheck = d.object(forKey: "autoUpdateCheck") as? Bool ?? true
         fastReplies = d.object(forKey: "fastReplies") as? Bool ?? true
+        instantCommands = d.object(forKey: "instantCommands") as? Bool ?? true
+        dictationEngine = DictationEngine(rawValue: d.string(forKey: "dictationEngine") ?? "") ?? .parakeet
         // On by default once Cua Driver is installed: installing it is the opt-in.
         screenControl = d.object(forKey: "screenControl") as? Bool ?? true
+        companionCursor = d.object(forKey: "companionCursor") as? Bool ?? true
+        shareScreen = d.object(forKey: "shareScreen") as? Bool ?? true
+        companionTrail = d.object(forKey: "companionTrail") as? Double ?? 0.45
+        companionFollows = d.object(forKey: "companionFollows") as? Bool ?? true
         listenMode = ListenMode(rawValue: d.string(forKey: "listenMode") ?? "") ?? .hold
         placement = Placement(rawValue: d.string(forKey: "placement") ?? "") ?? .auto
         hotkeyEnabled = d.object(forKey: "hotkeyEnabled") as? Bool ?? true
         contextTurns = d.object(forKey: "contextTurns") as? Int ?? 12
+        historyMemory = d.object(forKey: "historyMemory") as? Bool ?? true
         anthropicKey = Keychain.get("anthropic") ?? ""
         openAIKey = Keychain.get("openai") ?? ""
     }

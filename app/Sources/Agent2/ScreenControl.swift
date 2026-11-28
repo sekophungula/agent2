@@ -21,16 +21,26 @@ enum ScreenControl {
         AppSettings.shared.screenControl ? driverPath : nil
     }
 
+    /// How the agent launches Cua Driver: through Agent2's proxy (`CuaProxy`), which
+    /// passes everything through and tells Agent2 where the agent's cursor goes.
+    static func launch(_ driver: String) -> (command: String, args: [String]) {
+        guard let me = Bundle.main.executablePath else { return (driver, ["mcp"]) }
+        return (me, ["--cua-proxy", driver])
+    }
+
     /// MCP server config for Claude Code's --mcp-config.
     static func claudeMCPConfig(_ driver: String) -> String {
-        let obj: [String: Any] = ["mcpServers": ["cua-driver": ["command": driver, "args": ["mcp"]]]]
+        let l = launch(driver)
+        let obj: [String: Any] = ["mcpServers": ["cua-driver": ["command": l.command, "args": l.args]]]
         let data = (try? JSONSerialization.data(withJSONObject: obj)) ?? Data()
         return String(decoding: data, as: UTF8.self)
     }
 
     /// Extra Codex `-c` overrides that add the MCP server for this run.
     static func codexOverrides(_ driver: String) -> [String] {
-        ["-c", "mcp_servers.cua.command=\"\(driver)\"", "-c", "mcp_servers.cua.args=[\"mcp\"]"]
+        let l = launch(driver)
+        let args = l.args.map { "\"\($0)\"" }.joined(separator: ",")
+        return ["-c", "mcp_servers.cua.command=\"\(l.command)\"", "-c", "mcp_servers.cua.args=[\(args)]"]
     }
 
     static let prompt = """

@@ -5,6 +5,13 @@ import SwiftUI
 struct Agent2Main {
     static func main() {
         let args = CommandLine.arguments
+        // Launched by Claude Code / Codex as the cua-driver MCP server: stdio only, no UI.
+        if let i = args.firstIndex(of: "--cua-proxy"), i + 1 < args.count {
+            CuaProxy.run(driver: args[i + 1], extraArgs: Array(args[(i + 2)...]))
+        }
+        if args.contains("--cursor-demo") {
+            MainActor.assumeIsolated { DevTools.cursorDemo() }
+        }
         if let i = args.firstIndex(of: "--export-assets"), i + 1 < args.count {
             do { try PixelBird.exportAssets(to: URL(fileURLWithPath: args[i + 1])); print("Exported assets to \(args[i + 1])") }
             catch { print("Export failed: \(error)"); exit(1) }
@@ -21,6 +28,53 @@ struct Agent2Main {
         }
         if let i = args.firstIndex(of: "--ask-voice"), i + 1 < args.count {
             MainActor.assumeIsolated { DevTools.ask(args[i + 1], spoken: true) }
+            RunLoop.main.run()
+        }
+        if let i = args.firstIndex(of: "--dictation-test"), i + 1 < args.count {
+            MainActor.assumeIsolated { DevTools.dictationTest(args[i + 1]) }
+            RunLoop.main.run()
+        }
+        if let i = args.firstIndex(of: "--gesture-test"), i + 4 < args.count {
+            MainActor.assumeIsolated {
+                DevTools.gestureTest(x: Double(args[i + 1]) ?? 0, y: Double(args[i + 2]) ?? 0,
+                                     out: URL(fileURLWithPath: args[i + 3]), question: args[i + 4])
+            }
+            RunLoop.main.run()
+        }
+        if let i = args.firstIndex(of: "--point-test"), i + 1 < args.count {
+            MainActor.assumeIsolated { DevTools.pointTest(Array(args[(i + 2)...]), out: URL(fileURLWithPath: args[i + 1])) }
+            RunLoop.main.run()
+        }
+        if let i = args.firstIndex(of: "--parakeet-test") {
+            MainActor.assumeIsolated { DevTools.parakeetTest(Array(args[(i + 1)...])) }
+            RunLoop.main.run()
+        }
+        if let i = args.firstIndex(of: "--quick-test") {
+            MainActor.assumeIsolated {
+                for q in args[(i + 1)...] {
+                    let t = Date()
+                    let a = QuickCommands.match(q)
+                    print(String(format: "%5.1f ms  ", Date().timeIntervalSince(t) * 1000), a == nil ? "→ agent      " : "→ INSTANT    ", q, a.map { "  (\($0.reply))" } ?? "")
+                }
+            }
+            exit(0)
+        }
+        if args.contains("--echo-test") {
+            MainActor.assumeIsolated {
+                let s = Speaker.shared
+                for said in ["Sounds like the mic picked up a bit of background. I'm here whenever you need me.",
+                             "Looks like the mic caught that one. I'm here whenever you need me.",
+                             "Great, just hold Control and Option whenever you need me.",
+                             "Hi, what can I do for you?", "Want me to hit send?"] { s.remember(said) }
+                for heard in ["Sounds like the mike", "Looks like the", "Just hold control and", "Hi what can I", "I'm here", "No worries",
+                              "Hi what can I wait actually open my calendar for tomorrow", "No stop that and check my email instead", "stop"] {
+                    print(s.isEcho(heard) ? "ECHO  " : "REAL  ", heard, "→", s.trimEcho(heard))
+                }
+            }
+            exit(0)
+        }
+        if let i = args.firstIndex(of: "--memory-test"), i + 1 < args.count {
+            MainActor.assumeIsolated { DevTools.memoryTest(Array(args[(i + 1)...])) }
             RunLoop.main.run()
         }
         if args.contains("--check-update") {
@@ -92,6 +146,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             toggleMic: { [weak self] in self?.toggleMic() }))
 
         indicator.start(voice: voice)
+        CompanionCursor.shared.start()
+        HistoryMemory.shared.start()
+        QuickCommands.warmUp()
+        PointerTrail.shared.start()
+        Parakeet.shared.loadIfInstalled()
         Kokoro.shared.loadIfInstalled()
         applyPlacement()
         // Keep the notch or menu bar pill in step with what Agent2 is doing.
@@ -119,10 +178,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         d.set(Updater.currentVersion, forKey: "lastRunVersion")
 
+        // First launch after install: the tutorial (it asks for the permissions itself).
         if !UserDefaults.standard.bool(forKey: "onboarded") {
             UserDefaults.standard.set(true, forKey: "onboarded")
-            _ = HotkeyMonitor.ensureAccessibility(prompt: true)
-            openSettings(.source)
+            Welcome.show()
         }
     }
 
@@ -230,6 +289,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             menu.addItem(withTitle: "Check for updates…", action: #selector(menuCheckUpdates), keyEquivalent: "").target = self
         }
         menu.addItem(withTitle: "Open history folder", action: #selector(menuHistory), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Show tutorial", action: #selector(menuTutorial), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Agent2", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         if let item = statusItem {
@@ -242,6 +302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     @objc private func menuOpen() { showPopover() }
+    @objc private func menuTutorial() { Welcome.show() }
     @objc private func menuNew() { Orchestrator.shared.newConversation(); showPopover() }
     @objc private func menuHush() { Speaker.shared.stop() }
     @objc private func menuSettings() { openSettings(.source) }
@@ -284,6 +345,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             return
         }
         heldVoice = true
+        PointerTrail.shared.mark()   // where they point while talking goes with the request
         Speaker.shared.stop()   // talking over Agent2 interrupts it, like a person
         Task {
             guard await voice.requestPermissions() else { showPopover(); return }

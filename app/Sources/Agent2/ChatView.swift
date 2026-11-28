@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The menu-bar popover.
+/// The chat panel under the notch or menu bar bird: a quiet, rounded card with
+/// the conversation, a big hold-to-talk button and a follow-up field.
 struct ChatView: View {
     @ObservedObject var orchestrator = Orchestrator.shared
     @ObservedObject var registry = AgentRegistry.shared
@@ -17,43 +18,76 @@ struct ChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Rule()
-            if let banner = updateBanner { banner; Rule() }
-            sourceBar
-            Rule()
+            if let banner = updateBanner { banner.padding(.horizontal, 14).padding(.bottom, 8) }
             messages
-            if voice.isListening || !orchestrator.status.isEmpty { Rule(); statusBar }
-            Rule()
             composer
         }
-        .frame(width: 440, height: 580)
-        .background(Theme.bg)
+        .frame(width: 420, height: 560)
+        .background(Chat.bg)
         .preferredColorScheme(.dark)
         .onAppear { focused = true }
     }
 
-    // MARK: header
+    // MARK: Header
 
     private var header: some View {
         HStack(spacing: 10) {
-            BirdMark(size: 18)
-            Text("Agent2").font(.system(size: 14, weight: .semibold)).tracking(-0.2).foregroundStyle(Theme.text)
+            BirdMark(size: 16)
+            sourceMenu
             Spacer()
-            iconButton("plus", "New conversation") { orchestrator.newConversation() }
-            iconButton("clock.arrow.circlepath", "History", action: openHistory)
+            iconButton("square.and.pencil", "New conversation") { orchestrator.newConversation() }
+            iconButton("clock", "History", action: openHistory)
             iconButton("gearshape", "Settings", action: openSettings)
         }
-        .padding(.leading, 14).padding(.trailing, 8).frame(height: 44)
-        .background(Theme.panel)
+        .padding(.leading, 16).padding(.trailing, 10)
+        .frame(height: 50)
     }
 
-    /// A strip under the header while an update is available or installing.
+    /// Which agent does the work, as a small pill with a status dot.
+    private var sourceMenu: some View {
+        Menu {
+            ForEach(registry.agents.filter(\.canRunHeadless)) { a in
+                Button { settings.sourceAgentID = a.id } label: {
+                    if a.id == settings.sourceAgentID { Label(a.name, systemImage: "checkmark") } else { Text(a.name) }
+                }
+            }
+            Divider()
+            Button("Agent settings…", action: openSettings)
+        } label: {
+            HStack(spacing: 6) {
+                Circle().fill(statusColor).frame(width: 6, height: 6)
+                Text(registry.source?.name ?? "No agent").font(.system(size: 12, weight: .medium))
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(Chat.faint)
+            }
+            .foregroundStyle(Chat.text)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(Chat.raised, in: Capsule())
+            .contentShape(Capsule())
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+        .help("The agent that does the work. Only you change it.")
+    }
+
+    private var statusColor: Color {
+        if registry.source == nil { return Theme.amber }
+        return orchestrator.isWorking ? Theme.amber : Theme.greenBright
+    }
+
+    private func iconButton(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 13, weight: .regular)).foregroundStyle(Chat.faint)
+                .frame(width: 30, height: 30).contentShape(Rectangle())
+        }
+        .buttonStyle(HoverButtonStyle()).help(help)
+    }
+
+    /// While an update is available or installing.
     private var updateBanner: AnyView? {
         let text: String, button: AnyView?
         switch updater.state {
         case .available(let r):
-            text = "v\(r.version) is available"
-            button = AnyView(Button("Update") { Task { await updater.install(r) } }.buttonStyle(AccentButtonStyle()))
+            text = "Agent2 \(r.version) is ready"
+            button = AnyView(Button("Update") { Task { await updater.install(r) } }.buttonStyle(PillButtonStyle(filled: true)))
         case .downloading(let p):
             text = "Downloading update · \(Int(p * 100))%"; button = AnyView(ProgressView().controlSize(.small))
         case .installing:
@@ -63,189 +97,129 @@ struct ChatView: View {
         }
         return AnyView(
             HStack(spacing: 10) {
-                Rectangle().fill(Theme.green).frame(width: 7, height: 7)
-                Text(text).font(Theme.mono).foregroundStyle(Theme.text)
+                Image(systemName: "sparkles").font(.system(size: 12)).foregroundStyle(Theme.greenBright)
+                Text(text).font(.system(size: 12.5)).foregroundStyle(Chat.text)
                 Spacer()
                 button
             }
-            .padding(.horizontal, 14).frame(height: 40)
-            .background(Theme.greenWash)
+            .padding(.leading, 12).padding(.trailing, 6).frame(height: 38)
+            .background(Theme.greenWash, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         )
     }
 
-    private func iconButton(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.muted)
-                .frame(width: 28, height: 28)
-                .overlay(Sq().stroke(Theme.border))
-        }
-        .buttonStyle(.plain).help(help)
-    }
-
-    /// `~/Agent2 / source: Claude Code   [✓ LIVE]` — the console breadcrumb.
-    private var sourceBar: some View {
-        HStack(spacing: 8) {
-            Text("~/Agent2").foregroundStyle(Theme.muted)
-            Text("/").foregroundStyle(Theme.dim)
-            Menu {
-                ForEach(registry.agents) { a in
-                    Button { settings.sourceAgentID = a.id } label: {
-                        Label(a.name, systemImage: a.id == settings.sourceAgentID ? "checkmark" : "circle")
-                    }
-                }
-                Divider()
-                Button("Agent settings…", action: openSettings)
-            } label: {
-                HStack(spacing: 4) {
-                    Text("source:").foregroundStyle(Theme.muted)
-                    Text(registry.source?.name ?? "none").foregroundStyle(Theme.text)
-                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(Theme.muted)
-                }
-                .font(.system(size: 11, design: .monospaced))
-                .contentShape(Rectangle())
-            }
-            .menuStyle(.button)
-            .buttonStyle(.plain)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("The source agent is Agent2's brain. Only you change it.")
-            Spacer()
-            if orchestrator.isWorking { Tag(text: "Working", tone: .run) }
-            else if registry.source != nil { Tag(text: "✓ Ready", tone: .ok) }
-            else { Tag(text: "No source", tone: .warn) }
-        }
-        .font(.system(size: 11, design: .monospaced))
-        .padding(.horizontal, 14).frame(height: 34)
-    }
-
-    // MARK: messages
+    // MARK: Conversation
 
     private var messages: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    if orchestrator.conversation.turns.isEmpty { emptyState }
+                VStack(alignment: .leading, spacing: 16) {
+                    if orchestrator.conversation.turns.isEmpty, !voice.isListening { emptyState }
                     ForEach(orchestrator.conversation.turns) { turn in
                         TurnView(turn: turn).id(turn.id)
                     }
+                    if voice.isListening { listeningBubble.id("live") }
+                    else if orchestrator.isWorking { workingRow.id("live") }
+                    Color.clear.frame(height: 1).id("end")
                 }
-                .padding(14)
+                .padding(.horizontal, 18).padding(.vertical, 8)
             }
+            .scrollIndicators(.never)
             .onChange(of: orchestrator.conversation.turns.count) { _, _ in
-                if let last = orchestrator.conversation.turns.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("end", anchor: .bottom) }
             }
+            .onChange(of: orchestrator.isWorking) { _, _ in proxy.scrollTo("end", anchor: .bottom) }
+            .onChange(of: voice.isListening) { _, _ in proxy.scrollTo("end", anchor: .bottom) }
         }
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            MonoLabel(text: "// Ready", color: Theme.greenBright)
-            Text("What should your agents do?")
-                .font(.system(size: 22, weight: .semibold)).tracking(-0.6).foregroundStyle(Theme.text)
-                .padding(.top, 10)
-            Text("Hold **⌃ Control + ⌥ Option** anywhere and talk, or type below. Agent2 routes the work to \(registry.source?.name ?? "your agent") and the other agents on this Mac.")
-                .font(.system(size: 12)).foregroundStyle(Theme.muted).lineSpacing(2)
-                .padding(.top, 8)
-
-            VStack(spacing: 0) {
-                HStack { MonoLabel(text: "Try"); Spacer() }
-                    .padding(.horizontal, 12).frame(height: 30).background(Theme.panel)
-                ForEach(["Summarise my unread Gmail from today",
-                         "Have Codex add tests while Claude reviews the README",
-                         "What did we decide last week about the website?"], id: \.self) { s in
-                    Rule()
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Ask about anything on your screen.")
+                .font(.system(size: 21, weight: .semibold)).foregroundStyle(Chat.text)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Hold ⌃ Control + ⌥ Option and talk. Point at what you mean while you ask, and Agent2 will see it.")
+                .font(.system(size: 13.5)).foregroundStyle(Chat.muted).lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(["What does this button do?", "Summarise this page for me", "Open Safari"], id: \.self) { s in
                     Button { draft = s; focused = true } label: {
-                        HStack(spacing: 10) {
-                            Text("→").font(.system(size: 12, design: .monospaced)).foregroundStyle(Theme.greenBright)
-                            Text(s).font(.system(size: 12)).foregroundStyle(Theme.text)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 12).frame(height: 36)
-                        .contentShape(Rectangle())
-                    }.buttonStyle(.plain)
+                        Text(s).font(.system(size: 13)).foregroundStyle(Chat.text)
+                            .padding(.horizontal, 13).padding(.vertical, 8)
+                            .background(Chat.raised, in: Capsule())
+                    }.buttonStyle(HoverButtonStyle(shape: AnyShape(Capsule())))
                 }
             }
-            .overlay(Rectangle().stroke(Theme.border))
-            .padding(.top, 18)
-
-            VStack(spacing: 0) {
-                HStack { MonoLabel(text: "Agents on this Mac"); Spacer(); MonoLabel(text: "\(registry.agents.count)") }
-                    .padding(.horizontal, 12).frame(height: 30).background(Theme.panel)
-                ForEach(registry.agents.prefix(5)) { a in
-                    Rule()
-                    HStack {
-                        Text(a.name).font(.system(size: 12)).foregroundStyle(Theme.text)
-                        Spacer()
-                        Tag(text: a.id == settings.sourceAgentID ? "✓ Source" : a.kind == .cli ? "CLI" : a.kind == .api ? "API" : "Desktop",
-                            tone: a.id == settings.sourceAgentID ? .ok : .plain)
-                    }
-                    .padding(.horizontal, 12).frame(height: 32)
-                }
-            }
-            .overlay(Rectangle().stroke(Theme.border))
-            .padding(.top, 12)
+            .padding(.top, 4)
         }
-        .padding(.top, 10)
+        .padding(.top, 26)
     }
 
-    // MARK: status + composer
-
-    private var statusBar: some View {
-        HStack(spacing: 8) {
-            if voice.isListening {
-                Rectangle().fill(Theme.red).frame(width: 7, height: 7)
-                    .opacity(0.5 + Double(voice.level) * 0.5)
-                Text(voice.transcript.isEmpty ? "Listening… release ⌃⌥ to send" : voice.transcript)
-                    .lineLimit(2)
-            } else {
-                ProgressView().controlSize(.mini)
-                Text(orchestrator.status).lineLimit(1)
-                Spacer()
-                Button("Stop") { orchestrator.stop() }.buttonStyle(SecondaryButtonStyle())
+    /// What you're saying, live, as a faint bubble of your own.
+    private var listeningBubble: some View {
+        HStack {
+            Spacer(minLength: 50)
+            HStack(spacing: 8) {
+                Circle().fill(Theme.red).frame(width: 7, height: 7).opacity(0.45 + Double(voice.level) * 0.55)
+                Text(voice.transcript.isEmpty ? "Listening…" : voice.transcript)
+                    .font(.system(size: 14)).foregroundStyle(Chat.text.opacity(0.75))
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, 14).padding(.vertical, 9)
+            .background(Chat.bubble.opacity(0.6), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .font(Theme.mono).foregroundStyle(Theme.muted)
-        .padding(.horizontal, 14).frame(minHeight: 38)
-        .background(Theme.panel)
     }
+
+    private var workingRow: some View {
+        HStack(spacing: 10) {
+            ThinkingDots()
+            Text(orchestrator.status.isEmpty ? "Thinking…" : orchestrator.status)
+                .font(.system(size: 13)).foregroundStyle(Chat.muted).lineLimit(1)
+            Spacer()
+            Button("Stop") { orchestrator.stop() }.buttonStyle(PillButtonStyle(filled: false))
+        }
+    }
+
+    // MARK: Composer
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                Text(">").font(.system(size: 13, weight: .semibold, design: .monospaced)).foregroundStyle(Theme.greenBright)
-                TextField("Ask Agent2…", text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...5)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.text)
-                    .focused($focused)
-                    .onSubmit(send)
-            }
-            .padding(.horizontal, 10).padding(.vertical, 8)
-            .frame(minHeight: 34)
-            .background(Theme.bg, in: Sq())
-            .overlay(Sq().stroke(focused ? Theme.borderStrong : Theme.border))
-
+        HStack(spacing: 8) {
             Button(action: toggleMic) {
-                Image(systemName: voice.isListening ? "mic.fill" : "mic")
-                    .font(.system(size: 12))
-                    .foregroundStyle(voice.isListening ? Theme.red : Theme.muted)
-                    .frame(width: 34, height: 34)
-                    .overlay(Sq().stroke(voice.isListening ? Theme.red : Theme.border))
-            }.buttonStyle(.plain).help("Talk (or hold ⌃⌥)")
-
-            Button(action: send) {
-                Image(systemName: "arrow.up").font(.system(size: 12, weight: .bold))
-                    .frame(width: 34, height: 34)
-                    .background(canSend ? Color.white : Theme.panelRaised, in: Sq())
-                    .foregroundStyle(canSend ? Theme.bg : Theme.dim)
+                HStack(spacing: 7) {
+                    Image(systemName: voice.isListening ? "waveform" : "mic.fill").font(.system(size: 12, weight: .semibold))
+                    Text(voice.isListening ? "Listening… tap to send" : "Hold ⌃⌥ to talk")
+                        .font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
+                }
+                .foregroundStyle(voice.isListening ? Color.white : Chat.bg)
+                .padding(.horizontal, 14).frame(height: 38)
+                .background(voice.isListening ? Theme.red : Theme.greenBright, in: Capsule())
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
-            .disabled(!canSend)
+            .fixedSize()
+            .help("Click to talk, click again to send. Or hold ⌃ Control + ⌥ Option anywhere.")
+
+            HStack(spacing: 6) {
+                TextField(orchestrator.conversation.turns.isEmpty ? "Ask anything…" : "Follow up…", text: $draft, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...4)
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(Chat.text)
+                    .focused($focused)
+                    .focusEffectDisabled()
+                    .onSubmit(send)
+                Button(action: send) {
+                    Image(systemName: "arrow.up").font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(canSend ? Chat.bg : Chat.faint)
+                        .frame(width: 26, height: 26)
+                        .background(canSend ? Chat.text : Chat.bubble, in: Circle())
+                }
+                .buttonStyle(.plain).disabled(!canSend)
+            }
+            .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, minHeight: 38)
+            .background(Chat.raised, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(focused ? Chat.stroke : .clear, lineWidth: 1))
         }
-        .padding(12)
-        .background(Theme.panel)
+        .padding(.horizontal, 12).padding(.top, 8).padding(.bottom, 12)
     }
 
     private var canSend: Bool { !draft.trimmingCharacters(in: .whitespaces).isEmpty && !orchestrator.isWorking }
@@ -257,52 +231,117 @@ struct ChatView: View {
     }
 }
 
+/// The chat panel's own palette: a little lifted from Theme's near-black, so
+/// the card reads as soft rather than a terminal.
+enum Chat {
+    static let bg = Color(hex: 0x161616)
+    static let raised = Color(hex: 0x232323)
+    static let bubble = Color(hex: 0x2E2E2E)
+    static let stroke = Color(hex: 0x3A3A3A)
+    static let text = Color(hex: 0xF2F2F2)
+    static let muted = Color(hex: 0xA3A3A3)
+    static let faint = Color(hex: 0x7A7A7A)
+}
+
 struct TurnView: View {
     let turn: Turn
+    @State private var open = false
+
     var body: some View {
         switch turn.role {
         case .user:
-            VStack(alignment: .leading, spacing: 6) {
-                MonoLabel(text: "You")
+            HStack {
+                Spacer(minLength: 50)
                 Text(turn.text)
                     .textSelection(.enabled)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .background(Theme.panel)
-                    .overlay(alignment: .leading) { Rectangle().fill(Theme.borderStrong).frame(width: 2) }
+                    .font(.system(size: 14))
+                    .foregroundStyle(Chat.text)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(Chat.bubble, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
         case .assistant:
             VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) { BirdMark(size: 10); MonoLabel(text: turn.agent, color: Theme.greenBright) }
                 Text(markdown(turn.text))
                     .textSelection(.enabled)
-                    .font(.system(size: 13))
-                    .lineSpacing(2)
-                    .foregroundStyle(Theme.text)
+                    .font(.system(size: 14.5))
+                    .lineSpacing(4)
+                    .foregroundStyle(Chat.text)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        case .activity:
-            DisclosureGroup {
-                Text(turn.text).font(Theme.mono).foregroundStyle(Theme.muted).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 6)
-            } label: {
-                HStack(spacing: 8) {
-                    Text("==>").font(.system(size: 11, design: .monospaced)).foregroundStyle(Theme.dim)
-                    Text(turn.agent).font(Theme.mono).foregroundStyle(Theme.text)
-                    Spacer()
-                    Tag(text: turn.agent.contains("→") ? "Delegated" : "✓ Done", tone: turn.agent.contains("→") ? .plain : .ok)
+                HStack(spacing: 5) {
+                    BirdMark(size: 9, color: Chat.faint)
+                    Text(turn.agent).font(.system(size: 11)).foregroundStyle(Chat.faint)
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(Theme.panel)
-            .overlay(Rectangle().stroke(Theme.border))
+        case .activity:
+            VStack(alignment: .leading, spacing: 6) {
+                Button { withAnimation(.easeOut(duration: 0.15)) { open.toggle() } } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: turn.agent.contains("→") ? "arrow.turn.down.right" : "checkmark.circle.fill")
+                            .font(.system(size: 11)).foregroundStyle(turn.agent.contains("→") ? Chat.faint : Theme.greenBright)
+                        Text(turn.agent).font(.system(size: 12)).foregroundStyle(Chat.muted)
+                        Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(Chat.faint)
+                    }
+                    .contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                if open {
+                    Text(turn.text).font(.system(size: 12)).foregroundStyle(Chat.muted).textSelection(.enabled)
+                        .lineSpacing(2)
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Chat.raised, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+            }
         }
     }
 
     private func markdown(_ s: String) -> AttributedString {
         (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
+    }
+}
+
+/// Three dots that breathe while the agent works.
+private struct ThinkingDots: View {
+    var body: some View {
+        TimelineView(.animation) { t in
+            let s = t.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 4) {
+                ForEach(0..<3) { i in
+                    Circle().fill(Theme.greenBright)
+                        .frame(width: 6, height: 6)
+                        .opacity(0.35 + 0.65 * (0.5 + 0.5 * sin(s * 5 - Double(i) * 0.9)))
+                }
+            }
+        }
+    }
+}
+
+/// A rounded button: green filled, or a quiet outline.
+struct PillButtonStyle: ButtonStyle {
+    var filled: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(filled ? Chat.bg : Chat.text)
+            .padding(.horizontal, 12).frame(height: 28)
+            .background(filled ? Theme.greenBright : Chat.raised, in: Capsule())
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
+/// A plain button that lightens on hover.
+struct HoverButtonStyle: ButtonStyle {
+    var shape = AnyShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    func makeBody(configuration: Configuration) -> some View { Hovering(configuration: configuration, shape: shape) }
+
+    private struct Hovering: View {
+        let configuration: ButtonStyleConfiguration
+        let shape: AnyShape
+        @State private var hover = false
+        var body: some View {
+            configuration.label
+                .background(shape.fill(Color.white.opacity(hover ? 0.07 : 0)))
+                .opacity(configuration.isPressed ? 0.7 : 1)
+                .onHover { hover = $0 }
+        }
     }
 }

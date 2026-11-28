@@ -45,7 +45,9 @@ final class HotkeyMonitor {
 }
 
 /// On-device speech-to-text with Apple's Speech framework (no audio leaves the Mac
-/// when on-device recognition is available).
+/// when on-device recognition is available). Copes with long dictation: see
+/// `RollingTranscriber`. The audio is also saved while you talk, so if live
+/// recognition hears nothing, Agent2 transcribes the recording instead.
 @MainActor
 final class VoiceInput: ObservableObject {
     @Published var transcript = ""
@@ -54,9 +56,13 @@ final class VoiceInput: ObservableObject {
     @Published var problem: String?
 
     private let engine = AVAudioEngine()
-    private var request: SFSpeechAudioBufferRecognitionRequest?
-    private var task: SFSpeechRecognitionTask?
     private let recognizer = SFSpeechRecognizer()
+    private var transcriber: RollingTranscriber?
+    private var startedAt = Date()
+    private var configObserver: NSObjectProtocol?
+    /// The recording made while listening. Written on the audio thread.
+    nonisolated(unsafe) private var recording: AVAudioFile?
+    private var recordingURL: URL?
 
     func requestPermissions() async -> Bool {
         let speechOK = await withCheckedContinuation { c in
@@ -72,17 +78,46 @@ final class VoiceInput: ObservableObject {
     func start() {
         guard !isListening else { return }
         guard let recognizer, recognizer.isAvailable else { problem = "Speech recognition isn't available right now."; return }
+        Parakeet.shared.prepareIfChosen()
         transcript = ""
-        let req = SFSpeechAudioBufferRecognitionRequest()
-        req.shouldReportPartialResults = true
-        if recognizer.supportsOnDeviceRecognition { req.requiresOnDeviceRecognition = true }
-        request = req
+        let t = RollingTranscriber(recognizer: recognizer)
+        t.onUpdate = { [weak self] text in self?.transcript = text }
+        transcriber = t
+        t.start()
 
+        let format = engine.inputNode.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            problem = "No microphone found. Check System Settings → Sound → Input."
+            cleanup(); return
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("agent2-dictation-\(UUID().uuidString).caf")
+        recording = try? AVAudioFile(forWriting: url, settings: format.settings, commonFormat: format.commonFormat, interleaved: format.isInterleaved)
+        recordingURL = recording == nil ? nil : url
+        installTap(format: format)
+        // Headphones plugged in or the input changed: the engine stops, so restart it.
+        configObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.restartAfterDeviceChange() }
+        }
+        engine.prepare()
+        do {
+            try engine.start()
+            isListening = true
+            startedAt = Date()
+            problem = nil
+        } catch {
+            problem = "Couldn't start the microphone: \(error.localizedDescription)"
+            engine.inputNode.removeTap(onBus: 0)
+            cleanup()
+        }
+    }
+
+    private func installTap(format: AVAudioFormat) {
         let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
         input.removeTap(onBus: 0)
+        let t = transcriber
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-            req.append(buffer)
+            t?.append(buffer)
+            if let file = self?.recording, file.processingFormat == buffer.format { try? file.write(from: buffer) }
             guard let ch = buffer.floatChannelData?[0] else { return }
             let n = Int(buffer.frameLength)
             var sum: Float = 0
@@ -90,40 +125,74 @@ final class VoiceInput: ObservableObject {
             let rms = sqrt(sum / Float(max(n, 1)))
             Task { @MainActor in self?.level = min(1, rms * 12) }
         }
-        task = recognizer.recognitionTask(with: req) { [weak self] result, _ in
-            guard let result else { return }
-            let text = result.bestTranscription.formattedString
-            Task { @MainActor in self?.transcript = text }
-        }
+    }
+
+    private func restartAfterDeviceChange() {
+        guard isListening else { return }
+        let format = engine.inputNode.outputFormat(forBus: 0)
+        guard format.sampleRate > 0 else { return }
+        installTap(format: format)
         engine.prepare()
-        do {
-            try engine.start()
-            isListening = true
-            problem = nil
-        } catch {
-            problem = "Couldn't start the microphone: \(error.localizedDescription)"
-            cleanup()
-        }
+        try? engine.start()
     }
 
     /// Stops listening and returns what was heard once recognition settles.
     func stop() async -> String {
         guard isListening else { return transcript }
-        request?.endAudio()
         engine.stop()
         engine.inputNode.removeTap(onBus: 0)
+        if let o = configObserver { NotificationCenter.default.removeObserver(o); configObserver = nil }
         isListening = false
         level = 0
-        try? await Task.sleep(nanoseconds: 450_000_000)
-        let text = transcript
+        let talked = Date().timeIntervalSince(startedAt)
+        recording = nil   // closes the file
+        // Parakeet transcribes the whole recording in a fraction of a second, more
+        // accurately than the live recognizer, which is then not waited for.
+        if let url = recordingURL, let text = await Parakeet.shared.transcribe(file: url) {
+            transcript = text
+            cleanup()
+            return text
+        }
+        // Longer dictation takes longer to settle: wait for the final words.
+        var text = await transcriber?.finish(timeout: min(6, 1.5 + talked * 0.03)) ?? transcript
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, talked > 0.8, let url = recordingURL {
+            text = await Self.transcribe(file: url, recognizer: recognizer)
+        }
+        transcript = text
         cleanup()
         return text
     }
 
     private func cleanup() {
-        task?.cancel()
-        task = nil
-        request = nil
+        transcriber?.cancel()
+        transcriber = nil
+        recording = nil
+        if let url = recordingURL { try? FileManager.default.removeItem(at: url) }
+        recordingURL = nil
+    }
+
+    /// Transcribes a saved recording (the fallback when live recognition heard nothing).
+    static func transcribe(file url: URL, recognizer: SFSpeechRecognizer?) async -> String {
+        guard let recognizer, recognizer.isAvailable else { return "" }
+        let req = SFSpeechURLRecognitionRequest(url: url)
+        req.shouldReportPartialResults = false
+        req.taskHint = .dictation
+        req.addsPunctuation = true
+        if recognizer.supportsOnDeviceRecognition { req.requiresOnDeviceRecognition = true }
+        return await withCheckedContinuation { c in
+            var done = false
+            var task: SFSpeechRecognitionTask?
+            let finish: (String) -> Void = { text in
+                guard !done else { return }
+                done = true
+                c.resume(returning: text)
+            }
+            task = recognizer.recognitionTask(with: req) { result, error in
+                if let result, result.isFinal { DispatchQueue.main.async { finish(result.bestTranscription.formattedString) } }
+                else if error != nil { DispatchQueue.main.async { finish("") } }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) { task?.cancel(); finish("") }
+        }
     }
 }
 
@@ -133,6 +202,10 @@ final class VoiceInput: ObservableObject {
 final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     static let shared = Speaker()
     @Published private(set) var isSpeaking = false
+    /// What Agent2 said lately, so the microphone hearing it back through the
+    /// speakers isn't mistaken for the person.
+    private var said: [(Date, String)] = []
+    static let echoMemory: TimeInterval = 60
     private let synth = AVSpeechSynthesizer()
     private let kokoro = KokoroPlayer()
 
@@ -163,6 +236,7 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
         Speaker.trace?(clean)
+        remember(clean)
         isSpeaking = true
         let settings = AppSettings.shared
         // First spoken reply with Kokoro chosen: fetch it in the background and use
@@ -185,6 +259,43 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         u.postUtteranceDelay = 0.05
         isSpeaking = true
         synth.speak(u)
+    }
+
+    func remember(_ text: String) {
+        said.append((Date(), text))
+        said.removeAll { Date().timeIntervalSince($0.0) > Self.echoMemory }
+    }
+
+    static func words(_ s: String) -> [String] {
+        s.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "'" }).map(String.init)
+    }
+
+    private var saidWords: Set<String> {
+        Set(said.filter { Date().timeIntervalSince($0.0) < Self.echoMemory }.flatMap { Self.words($0.1) })
+    }
+
+    /// Words in `heard` that Agent2 didn't just say itself.
+    func newWords(in heard: String) -> [String] {
+        let mine = saidWords
+        return Self.words(heard).filter { !mine.contains($0) }
+    }
+
+    /// `heard` is mostly Agent2's own recent speech picked up by the microphone.
+    func isEcho(_ heard: String) -> Bool {
+        let w = Self.words(heard)
+        guard !w.isEmpty, !said.isEmpty else { return false }
+        let fresh = newWords(in: heard).count
+        return fresh < 2 || Double(fresh) / Double(w.count) < 0.4
+    }
+
+    /// Drops the start of `heard` while it repeats Agent2's own words (what the
+    /// microphone caught of its voice just before the person cut in).
+    func trimEcho(_ heard: String) -> String {
+        let mine = saidWords
+        let parts = heard.split(separator: " ", omittingEmptySubsequences: true)
+        var i = 0
+        while i < parts.count, let w = Self.words(String(parts[i])).first, mine.contains(w) { i += 1 }
+        return i >= 2 && i < parts.count ? parts[i...].joined(separator: " ") : heard
     }
 
     func stop() {
@@ -263,7 +374,7 @@ final class SpeechStream {
     private func drain(final: Bool) {
         guard !capped else { buffer = ""; return }
         // Drop finished code blocks and delegation blocks.
-        for pattern in [#"```[\s\S]*?```"#, #"<delegate\b[\s\S]*?</delegate>"#] {
+        for pattern in [#"```[\s\S]*?```"#, #"<delegate\b[\s\S]*?</delegate>"#, ScreenLook.markPattern] {
             buffer = buffer.replacingOccurrences(of: pattern, with: " ", options: .regularExpression)
         }
         // Text from an unfinished code block or <delegate> tag onward isn't speech
@@ -271,6 +382,12 @@ final class SpeechStream {
         var safeEnd = buffer.endIndex
         if let r = buffer.range(of: "```") { safeEnd = r.lowerBound }
         if let r = buffer.range(of: "<delegate"), r.lowerBound < safeEnd { safeEnd = r.lowerBound }
+        // A [POINT:…] mark for the cursor, not for reading out (a trailing "[PO…" may be one starting).
+        if let r = buffer.range(of: "[POINT"), r.lowerBound < safeEnd { safeEnd = r.lowerBound }
+        if !final, let r = buffer.range(of: "[", options: .backwards), r.lowerBound < safeEnd,
+           "[POINT".hasPrefix(String(buffer[r.lowerBound...])) {
+            safeEnd = r.lowerBound
+        }
         if !final, let r = buffer.range(of: "<", options: .backwards), r.lowerBound < safeEnd,
            "<delegate".hasPrefix(String(buffer[r.lowerBound...])) {
             safeEnd = r.lowerBound

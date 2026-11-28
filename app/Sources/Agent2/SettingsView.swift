@@ -184,6 +184,7 @@ private struct AgentsTab: View {
         .toggleStyle(SquareToggleStyle())
 
         ScreenControlCard()
+        CompanionCursorCard()
 
         RuledList(title: "What agents may do") {
             ForEach(Autonomy.allCases) { level in
@@ -213,13 +214,38 @@ private struct AgentsTab: View {
             .padding(14)
         }
 
+        let cliAgents = registry.agents.filter { $0.kind == .cli }
+        if !cliAgents.isEmpty {
+            RuledList(title: "Models", trailing: "Per agent") {
+                ForEach(cliAgents) { a in
+                    Rule()
+                    HStack(spacing: 12) {
+                        Text(a.name).font(.system(size: 12.5)).frame(width: 120, alignment: .leading)
+                        if ModelCatalog.models(for: a.id) != nil {
+                            modelMenu(a.id)
+                        } else if let example = ModelCatalog.typedExample(for: a.id) {
+                            TextField(example, text: Binding(
+                                get: { settings.agentModels[a.id] ?? "" },
+                                set: { settings.setModel($0.trimmingCharacters(in: .whitespaces), for: a.id) }))
+                                .squareField()
+                        }
+                    }
+                    .padding(.horizontal, 14).frame(height: 44)
+                }
+                Rule()
+                Text("\u{201C}Agent's default\u{201D} uses whatever the agent itself is set to. A model you pick here is used for every request, and wins over Fast replies.")
+                    .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                    .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+
         Card(title: "API keys · optional", trailing: AnyView(Tag(text: "Keychain"))) {
             Text("Use these if you'd rather pay per use than use a subscription CLI.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted)
             fieldRow("Anthropic") { SecureField("sk-ant-…", text: $settings.anthropicKey).squareField() }
-            fieldRow("Model") { TextField("", text: $settings.anthropicModel).squareField() }
+            fieldRow("Model") { modelMenu("anthropic-api") }
             fieldRow("OpenAI") { SecureField("sk-…", text: $settings.openAIKey).squareField() }
-            fieldRow("Model") { TextField("", text: $settings.openAIModel).squareField() }
+            fieldRow("Model") { modelMenu("openai-api") }
             HStack { Spacer(); Button("Save and rescan") { registry.refresh() }.buttonStyle(PrimaryButtonStyle()) }
         }
     }
@@ -229,6 +255,19 @@ private struct AgentsTab: View {
             MonoLabel(text: label).frame(width: 84, alignment: .leading)
             field()
         }
+    }
+
+    /// A dropdown of the models `agentID` can use.
+    private func modelMenu(_ agentID: String) -> some View {
+        let current = settings.model(for: agentID) ?? ""
+        let models = ModelCatalog.menu(ModelCatalog.models(for: agentID) ?? [], current: current)
+        return Picker("", selection: Binding(get: { current }, set: { settings.setModel($0, for: agentID) })) {
+            ForEach(models) { m in
+                Text(m.note.isEmpty ? m.name : "\(m.name) · \(m.note)").tag(m.id)
+            }
+        }
+        .pickerStyle(.menu).labelsHidden()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -359,6 +398,7 @@ private struct HistoryTab: View {
                 }
             }
         }
+        MemoryCard()
         RuledList(title: "Conversations", trailing: "\(items.count) files") {
             ForEach(items, id: \.url) { item in
                 Rule()
@@ -385,9 +425,44 @@ private struct HistoryTab: View {
     }
 }
 
+private struct MemoryCard: View {
+    @ObservedObject var settings = AppSettings.shared
+    @ObservedObject var memory = HistoryMemory.shared
+    var body: some View {
+        Card(title: "Memory") {
+            Toggle("Remember across conversations", isOn: $settings.historyMemory)
+            Text("Agent2 keeps a knowledge graph of your history: the people, projects, apps, decisions and preferences in each conversation and how they connect. Each request comes with what earlier conversations said about it. Your source agent reads each conversation once, a while after it goes quiet. Looking things up runs on this Mac.")
+                .font(.system(size: 12)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            if settings.historyMemory {
+                HStack {
+                    Text(status).font(.system(size: 12)).foregroundStyle(Theme.dim).lineLimit(2)
+                    Spacer()
+                    Button(updating ? "Updating…" : "Update now") { memory.update() }
+                        .buttonStyle(SecondaryButtonStyle()).disabled(updating)
+                    Button("Forget") { memory.reset() }
+                        .buttonStyle(SecondaryButtonStyle()).disabled(updating)
+                }
+            }
+        }
+    }
+    private var updating: Bool { if case .updating = memory.state { return true }; return false }
+    private var status: String {
+        switch memory.state {
+        case .unavailable(let why): return why
+        case .failed(let why): return "Last update failed: \(why)"
+        case .updating(let i, let n): return "Reading conversation \(i) of \(n)…"
+        case .empty: return "Nothing remembered yet."
+        case .ready:
+            let when = memory.updated.map { RelativeDateTimeFormatter().localizedString(for: $0, relativeTo: Date()) } ?? ""
+            return "\(memory.nodes) things from \(memory.conversations) conversations · updated \(when)"
+        }
+    }
+}
+
 private struct VoiceTab: View {
     @ObservedObject var settings = AppSettings.shared
     @ObservedObject var kokoro = Kokoro.shared
+    @ObservedObject var parakeet = Parakeet.shared
     @ObservedObject var handsFree = HandsFree.shared
     @State private var trusted = HotkeyMonitor.ensureAccessibility(prompt: false)
     var body: some View {
@@ -453,12 +528,20 @@ private struct VoiceTab: View {
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             Toggle("Answer typed messages out loud too", isOn: $settings.speakReplies)
             Toggle("Fast replies", isOn: $settings.fastReplies)
-            Text("The source agent thinks lightly and Claude Code skips your own hooks and plugins, so the first words come in a few seconds. Work it hands to other agents still gets full effort. Turn off for slower, deeper answers.")
+            Text("The source agent thinks lightly, Claude Code answers with Sonnet (unless you picked a model under Agents) and skips your own hooks and plugins, so the first words come in a few seconds. Work it hands to other agents still gets full effort. Turn off for slower, deeper answers.")
+                .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            Toggle("Instant commands", isOn: $settings.instantCommands)
+            Text("Agent2 does simple things itself, in a split second: open, quit or hide an app, open a website, change the volume. Anything more goes to your agent.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
             Text("Your words are transcribed on this Mac, and the Kokoro voice runs on it too.")
                 .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
         }
         .toggleStyle(SquareToggleStyle())
+
+        RuledList(title: "Speech recognition", trailing: "How Agent2 hears you") {
+            dictationRow(.parakeet, "Parakeet", "Most accurate with accents, names and long speech. Runs on this Mac. One-time \(Parakeet.downloadSize) download.") { parakeetStatus }
+            dictationRow(.apple, "Apple", "Built in. Less accurate, and slower to finish after you stop talking.") { EmptyView() }
+        }
 
         RuledList(title: "Voice", trailing: "What Agent2 sounds like") {
             engineRow(.kokoro, "Kokoro", "Natural voice that runs on this Mac. One-time 180 MB download.") { kokoroStatus }
@@ -501,6 +584,52 @@ private struct VoiceTab: View {
                     .contentShape(Rectangle())
                 }.buttonStyle(.plain)
             }
+        }
+    }
+
+    @ViewBuilder private var parakeetStatus: some View {
+        switch parakeet.state {
+        case .ready:
+            HStack(spacing: 8) {
+                Tag(text: "✓ Ready", tone: .ok)
+                Button("Remove") { parakeet.remove() }.buttonStyle(SecondaryButtonStyle())
+            }
+        case .downloading:
+            HStack(spacing: 8) { ProgressView().controlSize(.small); Tag(text: "Downloading", tone: .run) }
+        case .notInstalled:
+            Button("Download") { settings.dictationEngine = .parakeet; parakeet.prepare() }.buttonStyle(PrimaryButtonStyle())
+        case .failed(let why):
+            HStack(spacing: 8) {
+                Tag(text: "Failed", tone: .warn).help(why)
+                Button("Retry") { parakeet.prepare() }.buttonStyle(SecondaryButtonStyle())
+            }
+        }
+    }
+
+    private func dictationRow<T: View>(_ engine: DictationEngine, _ title: String, _ detail: String,
+                                       @ViewBuilder trailing: () -> T) -> some View {
+        let on = settings.dictationEngine == engine
+        return VStack(spacing: 0) {
+            Rule()
+            HStack(spacing: 12) {
+                Button { settings.dictationEngine = engine } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Rectangle().stroke(on ? Theme.green : Theme.borderStrong)
+                            if on { Rectangle().fill(Theme.green).padding(3) }
+                        }.frame(width: 14, height: 14)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title).font(.system(size: 12.5, weight: .medium))
+                            Text(detail).font(.system(size: 11.5)).foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                trailing()
+            }
+            .padding(.horizontal, 14).frame(height: 54)
+            .background(on ? Theme.greenWash : .clear)
         }
     }
 
@@ -576,6 +705,7 @@ private struct AboutTab: View {
             HStack(spacing: 8) {
                 Button("Website") { NSWorkspace.shared.open(URL(string: "https://agent2.shakatec.co.za")!) }.buttonStyle(SecondaryButtonStyle())
                 Button("GitHub") { NSWorkspace.shared.open(URL(string: "https://github.com/sekophungula/agent2")!) }.buttonStyle(SecondaryButtonStyle())
+                Button("Show tutorial") { Welcome.show() }.buttonStyle(SecondaryButtonStyle())
             }
         }
 
@@ -701,6 +831,43 @@ private struct UpdatesCard: View {
     }
 }
 
+/// Settings → Agents → Companion cursor.
+private struct CompanionCursorCard: View {
+    @ObservedObject var settings = AppSettings.shared
+    @State private var screenAllowed = ScreenLook.allowed
+    private let poll = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        Card(title: "Companion cursor", trailing: AnyView(Tag(text: settings.companionCursor ? "✓ On" : "Off", tone: settings.companionCursor ? .ok : .plain))) {
+            Toggle("Show the agent's cursor in Agent2 green", isOn: $settings.companionCursor)
+            Text("A green cursor stays next to yours while Agent2 runs, so it's always clear what you're pointing at. When your agent shows you something (\u{201C}where's the export button?\u{201D}) it flies there, rings it and comes back. Your own pointer is never moved, and clicks go straight through it.")
+                .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            if settings.companionCursor {
+                Toggle("Always show it next to my pointer", isOn: $settings.companionFollows)
+                Toggle("Show the agent my screen with each request", isOn: $settings.shareScreen)
+                HStack(spacing: 10) {
+                    Text("Agent2 sends a screenshot of the display you're on, and where your pointer is, with what you ask. It goes only to your source agent (Claude Code or Codex), the same as anything else you ask it. Agent2's own windows are left out.")
+                        .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    if settings.shareScreen {
+                        if screenAllowed { Tag(text: "✓ Screen Recording", tone: .ok) }
+                        else { Button("Allow") { ScreenLook.request() }.buttonStyle(PrimaryButtonStyle()) }
+                    }
+                }
+                HStack(spacing: 10) {
+                    Text("Trail").font(.system(size: 12))
+                    Slider(value: $settings.companionTrail, in: 0.2...0.9).tint(Theme.green).frame(maxWidth: 260)
+                    Text(String(format: "%.0f ms", settings.companionTrail * 1000)).font(Theme.mono).foregroundStyle(Theme.muted)
+                    Spacer()
+                    Button("Preview") { CompanionCursor.shared.preview() }.buttonStyle(SecondaryButtonStyle())
+                }
+            }
+        }
+        .toggleStyle(SquareToggleStyle())
+        .onReceive(poll) { _ in screenAllowed = ScreenLook.allowed }
+    }
+}
+
 /// Settings → Agents → Screen control (Cua Driver).
 private struct ScreenControlCard: View {
     @ObservedObject var settings = AppSettings.shared
@@ -727,7 +894,7 @@ private struct ScreenControlCard: View {
                 }
             } else {
                 Toggle("Let the source agent use the mouse and keyboard", isOn: $settings.screenControl)
-                Text("Works with Claude Code and Codex as the source. Ask things like \u{201C}open Notes and start a shopping list\u{201D} or \u{201C}show me where the Wi-Fi settings are\u{201D}. You'll see Cua's cursor move as it works. It never types passwords or payment details, and asks before sending or deleting anything.")
+                Text("Works with Claude Code and Codex as the source. Ask things like \u{201C}open Notes and start a shopping list\u{201D} or \u{201C}show me where the Wi-Fi settings are\u{201D}. You'll see the agent's cursor move as it works. It never types passwords or payment details, and asks before sending or deleting anything.")
                     .font(.system(size: 11.5)).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     permission("Accessibility", status.accessibility)

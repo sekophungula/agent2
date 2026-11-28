@@ -1,10 +1,155 @@
 import AppKit
+import AVFoundation
+import Speech
 import SwiftUI
 
 /// Developer helpers: `Agent2 --snapshot <dir>` renders the UI to PNGs and
 /// `Agent2 --ask "<message>"` runs one request through the orchestrator headlessly.
 @MainActor
 enum DevTools {
+    /// `--parakeet-test <audio files…>`: downloads Parakeet if needed and prints
+    /// what it hears in each file, with timings.
+    /// `--point-test [question…]`: checks the screenshot ↔ screen maths on made-up
+    /// display layouts, then asks Claude Code each question about the real screen
+    /// and moves the cursor to its answer (saving a screenshot with the cursor in it).
+    static func pointTest(_ questions: [String], out: URL) {
+        // 1. Maths: every corner of every display survives the round trip.
+        let layouts: [(String, CGRect)] = [
+            ("Retina main 1440×900", CGRect(x: 0, y: 0, width: 1440, height: 900)),
+            ("1x external 1920×1080, right and lower", CGRect(x: 1440, y: -180, width: 1920, height: 1080)),
+            ("display to the left, above", CGRect(x: -1280, y: 100, width: 1280, height: 800)),
+            ("portrait 1080×1920", CGRect(x: 3360, y: -500, width: 1080, height: 1920)),
+        ]
+        var worst = 0.0
+        for (name, frame) in layouts {
+            let scale = min(1, ScreenLook.maxSide / max(frame.width, frame.height))
+            let size = CGSize(width: (frame.width * scale).rounded(), height: (frame.height * scale).rounded())
+            let corners = [CGPoint(x: 0, y: 0), CGPoint(x: size.width, y: 0), CGPoint(x: 0, y: size.height), CGPoint(x: size.width, y: size.height)]
+            let expected = [CGPoint(x: frame.minX, y: frame.maxY), CGPoint(x: frame.maxX, y: frame.maxY),
+                            CGPoint(x: frame.minX, y: frame.minY), CGPoint(x: frame.maxX, y: frame.minY)]
+            for (c, e) in zip(corners, expected) {
+                let p = ScreenLook.cocoaPoint(fromImage: c, frame: frame, imageSize: size)
+                let back = ScreenLook.imagePoint(fromCocoa: p, frame: frame, imageSize: size)
+                worst = max(worst, hypot(p.x - e.x, p.y - e.y), hypot(back.x - c.x, back.y - c.y))
+            }
+            print("maths ok:", name, "image", Int(size.width), "×", Int(size.height))
+        }
+        print(String(format: "maths: worst corner error %.4f pt", worst))
+        guard !questions.isEmpty else { exit(worst < 0.01 ? 0 : 1) }
+
+        // 2. Live: capture, ask, point.
+        CompanionCursor.shared.capturable = true
+        CompanionCursor.shared.start()
+        AgentRegistry.shared.refresh()
+        guard let agent = AgentRegistry.shared.agents.first(where: { $0.id == "claude-code" }) else { print("no Claude Code"); exit(1) }
+        Task {
+            for (n, q) in questions.enumerated() {
+                guard let shot = await ScreenLook.capture() else { print("capture failed (Screen Recording?)"); exit(1) }
+                print("\n== \(q)\nscreen", shot.frame, "image", shot.imageSize, "pointer", shot.pointer)
+                var ctx = RunContext(cwd: NSTemporaryDirectory(), autonomy: .readOnly, cancel: CancelToken(), progress: { _ in }, tools: nil)
+                ctx.fast = true
+                ctx.image = shot.file
+                let t = Date()
+                let reply = (try? await Runner.run(agent, prompt: ScreenLook.prompt(shot) + "\n\n" + q,
+                                                   system: "Answer in one short sentence.", model: "sonnet", ctx: ctx)) ?? "(failed)"
+                print(String(format: "%.1fs: ", Date().timeIntervalSince(t)) + reply.replacingOccurrences(of: "\n", with: " "))
+                guard let mark = ScreenLook.mark(in: reply) else { print("no mark"); continue }
+                let p = ScreenLook.cocoaPoint(fromImage: CGPoint(x: mark.x, y: mark.y), frame: shot.frame, imageSize: shot.imageSize)
+                print("mark", mark.x, mark.y, "→ screen point", Int(p.x), Int(p.y), "shown:", ScreenLook.show(mark, from: shot))
+                try? await Task.sleep(for: .seconds(1.6))
+                let png = out.appendingPathComponent("point-\(n + 1).png").path
+                let p2 = Process(); p2.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture"); p2.arguments = ["-x", "-m", png]
+                try? p2.run(); p2.waitUntilExit()
+                print("saved", png)
+                try? FileManager.default.removeItem(at: shot.file)
+            }
+            exit(0)
+        }
+    }
+
+    /// `--gesture-test <x> <y> <out dir> "question"`: circles the spot (top-left
+    /// screen points) as if the person had while asking, without moving the real
+    /// pointer, then runs the whole request: screenshot with the drawn path,
+    /// accessibility lookup, Claude Code, and the cursor pointing back.
+    static func gestureTest(x: Double, y: Double, out: URL, question: String) {
+        CompanionCursor.shared.capturable = true
+        CompanionCursor.shared.start()
+        AgentRegistry.shared.refresh()
+        let mainHeight = NSScreen.screens.first?.frame.height ?? 0
+        let centre = CGPoint(x: x, y: mainHeight - y)
+        let path = (0...60).map { i -> CGPoint in
+            let a = Double(i) / 60 * 2.2 * .pi
+            return CGPoint(x: centre.x + 26 * cos(a), y: centre.y + 20 * sin(a))
+        }
+        PointerTrail.shared.replaying = true
+        PointerTrail.shared.replay(path)
+        guard let agent = AgentRegistry.shared.agents.first(where: { $0.id == "claude-code" }) else { exit(1) }
+        Task {
+            guard let shot = await ScreenLook.capture(spoken: true) else { print("capture failed"); exit(1) }
+            try? FileManager.default.copyItem(at: shot.file, to: out.appendingPathComponent("gesture-sent.jpg"))
+            print("focus", shot.focus, "element:", shot.element ?? "(none)")
+            var ctx = RunContext(cwd: NSTemporaryDirectory(), autonomy: .readOnly, cancel: CancelToken(), progress: { _ in }, tools: nil)
+            ctx.fast = true
+            ctx.image = shot.file
+            let t = Date()
+            let reply = (try? await Runner.run(agent, prompt: ScreenLook.prompt(shot) + "\n\n" + question,
+                                               system: "Answer in two short sentences.", model: "sonnet", ctx: ctx)) ?? "(failed)"
+            print(String(format: "%.1fs: ", Date().timeIntervalSince(t)) + reply)
+            if let mark = ScreenLook.mark(in: reply) { print("points back:", ScreenLook.show(mark, from: shot)) }
+            exit(0)
+        }
+    }
+
+    static func parakeetTest(_ files: [String]) {
+        AppSettings.shared.dictationEngine = .parakeet
+        Parakeet.trace = { print($0) }
+        let started = Date()
+        Parakeet.shared.prepare()
+        Task {
+            while Parakeet.shared.state == .downloading { try? await Task.sleep(for: .milliseconds(200)) }
+            print(String(format: "state: %@ after %.1fs", "\(Parakeet.shared.state)", Date().timeIntervalSince(started)))
+            guard Parakeet.shared.isReady else { exit(1) }
+            for _ in 0..<600 where !Parakeet.shared.boosting { try? await Task.sleep(for: .milliseconds(100)) }
+            print("boosting:", Parakeet.shared.boosting, Parakeet.vocabulary())
+            for f in files {
+                let t = Date()
+                let text = await Parakeet.shared.transcribe(file: URL(fileURLWithPath: f)) ?? "(nothing)"
+                print(String(format: "\n== %@ (%.0f ms)\n%@", (f as NSString).lastPathComponent, Date().timeIntervalSince(t) * 1000, text))
+            }
+            exit(0)
+        }
+    }
+
+    /// `--memory-test build` reads the history into memory with the source agent;
+    /// `--memory-test "<question>" …` prints what each question would recall.
+    static func memoryTest(_ args: [String]) {
+        AgentRegistry.shared.refresh()
+        let m = HistoryMemory.shared
+        if args.first == "build" {
+            let started = Date()
+            print("reader:", HistoryMemory.reader().0?.name ?? HistoryMemory.reader().1 ?? "")
+            m.update()
+            Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                MainActor.assumeIsolated {
+                    if case .updating(let i, let n) = m.state { print("reading \(i)/\(n)…"); return }
+                    print("state:", m.state, "things:", m.nodes, "conversations:", m.conversations,
+                          String(format: "%.0fs", Date().timeIntervalSince(started)))
+                    exit(0)
+                }
+            }
+            return
+        }
+        Task {
+            for q in args {
+                let t = Date()
+                let r = await m.recall(q)
+                print("Q: \(q)  [\(String(format: "%.1f", Date().timeIntervalSince(t) * 1000)) ms]")
+                print(r ?? "(nothing related)", "\n")
+            }
+            exit(0)
+        }
+    }
+
     static func snapshot(to dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         AgentRegistry.shared.refresh()
@@ -24,6 +169,7 @@ enum DevTools {
             notes: "**A natural voice, on your Mac.**\n\n- Agent2 now speaks with Kokoro, run on your Mac.\n- Replies start in about half a second.",
             zip: URL(string: "https://example.com")!, page: URL(string: "https://example.com")!)))
         render(ChatView(voice: voice, openSettings: {}, openHistory: {}, toggleMic: {}), "popover-update", dir)
+        for step in 0..<5 { render(WelcomeView(step: step, done: {}), "welcome-\(step + 1)", dir) }
         for tab in [SettingsTab.source, .agents, .apps, .voice, .about] {
             render(SettingsView(tab: tab).frame(width: 820, height: tab == .voice || tab == .agents ? 1080 : 640), "settings-\(tab.id.split(separator: " ").first!.lowercased())", dir)
         }
@@ -189,5 +335,86 @@ enum DevTools {
             HandsFree.shared.end()
             exit(0)
         }
+    }
+
+    /// `Agent2 --dictation-test <audio file>`: plays a recording into speech recognition
+    /// in real time, the way the microphone would, through the old single recognition
+    /// task and through `RollingTranscriber`, and prints what each one heard.
+    static func dictationTest(_ path: String) {
+        Task { @MainActor in
+            guard let file = try? AVAudioFile(forReading: URL(fileURLWithPath: path)),
+                  let recognizer = SFSpeechRecognizer() else { print("can't open \(path)"); exit(1) }
+            _ = await withCheckedContinuation { c in SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0) } }
+            let legacy = SFSpeechAudioBufferRecognitionRequest()
+            legacy.shouldReportPartialResults = true
+            if recognizer.supportsOnDeviceRecognition { legacy.requiresOnDeviceRecognition = true }
+            var legacyText = ""
+            let legacyTask = recognizer.recognitionTask(with: legacy) { r, _ in
+                if let t = r?.bestTranscription.formattedString { legacyText = t }
+            }
+            let rolling = RollingTranscriber(recognizer: recognizer)
+            rolling.start()
+            let format = file.processingFormat
+            let chunk = AVAudioFrameCount(format.sampleRate / 10)
+            let t0 = Date()
+            while file.framePosition < file.length {
+                guard let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: chunk) else { break }
+                try? file.read(into: buf, frameCount: chunk)
+                if buf.frameLength == 0 { break }
+                legacy.append(buf)
+                rolling.append(buf)
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            let secs = Date().timeIntervalSince(t0)
+            legacy.endAudio()
+            try? await Task.sleep(for: .milliseconds(450))   // what the old stop() waited
+            let old = legacyText
+            legacyTask.cancel()
+            let new = await rolling.finish(timeout: min(6, 1.5 + secs * 0.03))
+            print(String(format: "audio: %.0fs", secs))
+            print("OLD (\(old.split(separator: " ").count) words): \(old)\n")
+            print("NEW (\(new.split(separator: " ").count) words): \(new)")
+            exit(0)
+        }
+    }
+
+    /// `Agent2 --cursor-demo [seconds]`: shows the companion cursor on screen (also
+    /// in screenshots) running a scripted tour of moves and clicks, then idles so
+    /// CPU use can be checked, then quits. Prints a line at each step.
+    static func cursorDemo() {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        let c = CompanionCursor.shared
+        c.capturable = true
+        CompanionCursor.trace = true
+        c.start()
+        let s = NSScreen.screens[0].frame
+        func at(_ fx: CGFloat, _ fy: CGFloat) -> CGPoint { CGPoint(x: s.minX + s.width * fx, y: s.minY + s.height * fy) }
+        let tour: [(Double, CGPoint, String)] = [
+            (0.5, at(0.25, 0.70), "move"), (1.6, at(0.62, 0.55), "click"), (2.8, at(0.40, 0.30), "double"),
+            (4.0, at(0.75, 0.25), "move"), (4.9, at(0.70, 0.72), "right"), (6.0, at(0.30, 0.45), "drag"),
+        ]
+        let t0 = Date()
+        for (delay, p, kind) in tour {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                print(String(format: "%5.2fs  %@ → (%.0f, %.0f)", Date().timeIntervalSince(t0), kind, p.x, p.y))
+                c.agentAction(at: p, kind: kind)
+            }
+        }
+        let total = Double(CommandLine.arguments.last.flatMap(Double.init) ?? 16)
+        // AGENT2_CURSOR_FRAMES=<dir>: save what the overlay shows at moments of the tour.
+        if let dir = ProcessInfo.processInfo.environment["AGENT2_CURSOR_FRAMES"] {
+            for t in [0.62, 0.75, 1.8, 1.95, 2.25, 2.6, 3.06, 3.2, 3.5, 5.75, 6.45, 6.75] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+                    guard let view = NSApp.windows.first?.contentView,
+                          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+                    view.cacheDisplay(in: view.bounds, to: rep)
+                    try? rep.representation(using: .png, properties: [:])?
+                        .write(to: URL(fileURLWithPath: dir).appendingPathComponent(String(format: "f-%.2f.png", t)))
+                }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + total) { print("done"); exit(0) }
+        app.run()
     }
 }

@@ -16,6 +16,10 @@ struct RunContext: Sendable {
     var fast = false
     /// Cua Driver binary to attach as an MCP server, for screen control (source agent only).
     var screenDriver: String? = nil
+    /// Background bookkeeping (memory): don't save it as a Claude Code session.
+    var background = false
+    /// A screenshot (JPEG) to send with the prompt, for agents that take images.
+    var image: URL? = nil
 }
 
 struct ToolSpec: @unchecked Sendable {
@@ -41,12 +45,16 @@ enum RunnerError: LocalizedError {
 enum Runner {
     static func run(_ agent: AgentInfo, prompt: String, system: String, model: String?, ctx: RunContext) async throws -> String {
         try FileManager.default.createDirectory(atPath: ctx.cwd, withIntermediateDirectories: true)
+        // No model asked for: the one the person picked in Settings, else the agent's own default.
+        var chosen = model
+        if chosen == nil { chosen = await MainActor.run { AppSettings.shared.model(for: agent.id) } }
+        let m = { (flag: String) in chosen.map { [flag, $0] } ?? [] }
         switch agent.id {
-        case "claude-code": return try await claudeCode(agent, prompt, system, ctx)
-        case "codex": return try await codex(agent, prompt, system, ctx)
-        case "gemini": return try await simpleCLI(agent, ["-p", combined(system, prompt)] + (ctx.autonomy == .full ? ["--yolo"] : []), ctx)
-        case "cursor-agent": return try await simpleCLI(agent, ["-p", combined(system, prompt), "--output-format", "text"] + (ctx.autonomy == .full ? ["--force"] : []), ctx)
-        case "opencode": return try await simpleCLI(agent, ["run", combined(system, prompt)], ctx)
+        case "claude-code": return try await claudeCode(agent, prompt, system, ctx, model: chosen)
+        case "codex": return try await codex(agent, prompt, system, ctx, model: chosen)
+        case "gemini": return try await simpleCLI(agent, m("-m") + ["-p", combined(system, prompt)] + (ctx.autonomy == .full ? ["--yolo"] : []), ctx)
+        case "cursor-agent": return try await simpleCLI(agent, m("--model") + ["-p", combined(system, prompt), "--output-format", "text"] + (ctx.autonomy == .full ? ["--force"] : []), ctx)
+        case "opencode": return try await simpleCLI(agent, ["run"] + m("-m") + [combined(system, prompt)], ctx)
         case "anthropic-api": return try await AnthropicAPI.run(prompt: prompt, system: system, ctx: ctx)
         case "openai-api": return try await OpenAIAPI.run(prompt: prompt, system: system, ctx: ctx)
         default:
@@ -60,9 +68,21 @@ enum Runner {
     }
 
     // MARK: Claude Code (headless, stream-json)
-    private static func claudeCode(_ a: AgentInfo, _ prompt: String, _ system: String, _ ctx: RunContext) async throws -> String {
-        var args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-                    "--append-system-prompt", system]
+    private static func claudeCode(_ a: AgentInfo, _ prompt: String, _ system: String, _ ctx: RunContext,
+                                   model: String? = nil) async throws -> String {
+        // With a screenshot, the prompt goes in on stdin as a message with an image.
+        var stdin: String? = nil
+        if let image = ctx.image, let data = try? Data(contentsOf: image) {
+            let msg: [String: Any] = ["type": "user", "message": ["role": "user", "content": [
+                ["type": "image", "source": ["type": "base64", "media_type": "image/jpeg", "data": data.base64EncodedString()]],
+                ["type": "text", "text": prompt],
+            ]]]
+            stdin = (try? JSONSerialization.data(withJSONObject: msg)).map { String(decoding: $0, as: UTF8.self) + "\n" }
+        }
+        var args = (stdin == nil ? ["-p", prompt] : ["-p", "--input-format", "stream-json"])
+            + ["--output-format", "stream-json", "--verbose", "--include-partial-messages", "--append-system-prompt", system]
+        if let model { args += ["--model", model] }
+        if ctx.background { args += ["--no-session-persistence"] }
         if ctx.fast { args += ["--setting-sources", "project,local", "--effort", "low"] }
         if let driver = ctx.screenDriver {
             args += ["--mcp-config", ScreenControl.claudeMCPConfig(driver), "--allowedTools", "mcp__cua-driver"]
@@ -73,7 +93,7 @@ enum Runner {
         case .full: args += ["--dangerously-skip-permissions"]
         }
         let finalBox = Box<String>()
-        let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, onLine: { line in
+        let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, stdin: stdin, onLine: { line in
             guard let obj = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { return }
             switch obj["type"] as? String {
             case "stream_event":
@@ -115,14 +135,17 @@ enum Runner {
     }
 
     // MARK: Codex CLI (exec mode)
-    private static func codex(_ a: AgentInfo, _ prompt: String, _ system: String, _ ctx: RunContext) async throws -> String {
+    private static func codex(_ a: AgentInfo, _ prompt: String, _ system: String, _ ctx: RunContext,
+                              model: String? = nil) async throws -> String {
         let out = FileManager.default.temporaryDirectory.appendingPathComponent("agent2-codex-\(UUID().uuidString).txt")
         defer { try? FileManager.default.removeItem(at: out) }
         let sandbox = ["read-only", "workspace-write", "danger-full-access"][[Autonomy.readOnly, .editFiles, .full].firstIndex(of: ctx.autonomy)!]
-        let args = ["exec", "--skip-git-repo-check", "--color", "never", "--json", "-s", sandbox]
-            + (ctx.fast ? ["-c", "model_reasoning_effort=\"low\""] : [])
-            + (ctx.screenDriver.map(ScreenControl.codexOverrides) ?? [])
-            + ["--output-last-message", out.path, combined(system, prompt)]
+        var args: [String] = ["exec", "--skip-git-repo-check", "--color", "never", "--json", "-s", sandbox]
+        if let model { args += ["-m", model] }
+        if let image = ctx.image { args += ["-i", image.path] }
+        if ctx.fast { args += ["-c", "model_reasoning_effort=\"low\""] }
+        if let driver = ctx.screenDriver { args += ScreenControl.codexOverrides(driver) }
+        args += ["--output-last-message", out.path, combined(system, prompt)]
         let res = try await Shell.run(a.detail, args, cwd: ctx.cwd, onLine: { line in
             let t = line.trimmingCharacters(in: .whitespaces)
             guard !t.isEmpty else { return }
